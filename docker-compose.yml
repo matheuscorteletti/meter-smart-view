@@ -1,0 +1,67 @@
+
+# Docker Compose para desenvolvimento local
+# Útil para testar antes do deploy na infraestrutura
+
+version: '3.8'
+
+services:
+  # Frontend (desenvolvimento)
+  frontend:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001/api
+    depends_on:
+      - backend
+      - database
+
+  # Backend (exemplo Node.js - você precisa implementar)
+  backend:
+    # build: ./backend  # Quando criar o backend
+    image: node:18-alpine
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: npm run dev
+    environment:
+      - DB_HOST=database
+      - DB_PORT=3306
+      - DB_NAME=meter_system
+      - DB_USER=root
+      - DB_PASSWORD=password123
+      - JWT_SECRET=seu_jwt_secret_aqui
+    depends_on:
+      - database
+
+  # Banco MySQL
+  database:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password123
+      MYSQL_DATABASE: meter_system
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./deployment/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  # nginx (proxy)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./deployment/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  mysql_data:
