@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,6 +7,7 @@ import BuildingManagement from './BuildingManagement';
 import UnitManagement from './UnitManagement';
 import MeterManagement from './MeterManagement';
 import UserManagement from './UserManagement';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
@@ -49,29 +49,36 @@ const AdminDashboard = () => {
 
     setConsumptionData(chartData);
 
-    // Atividades recentes baseadas em dados reais
+    // Atividades recentes
     const activities = [];
     
-    // Adicionar atividades baseadas nas leituras reais
-    readings.slice(-3).forEach((reading, index) => {
+    // Atividades baseadas em leituras reais
+    const recentReadings = readings
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 3);
+
+    recentReadings.forEach((reading, index) => {
       const meter = meters.find(m => m.id === reading.meterId);
       const unit = units.find(u => u.id === meter?.unitId);
       const building = buildings.find(b => b.id === unit?.buildingId);
       
       if (building && unit) {
-        const timeAgo = `${(index + 1) * 2} horas atrás`;
+        const now = new Date();
+        const readingDate = new Date(reading.date);
+        const diffInHours = Math.floor((now.getTime() - readingDate.getTime()) / (1000 * 60 * 60));
+        const timeAgo = diffInHours < 24 ? `${diffInHours}h atrás` : `${Math.floor(diffInHours / 24)}d atrás`;
         
         if (reading.isAlert) {
           activities.push({
             type: 'alert',
-            message: `Consumo alto detectado - ${building.name}, ${unit.number}`,
+            message: `Consumo alto detectado - ${building.name}, Unidade ${unit.number}`,
             time: timeAgo,
             icon: AlertTriangle
           });
         } else {
           activities.push({
             type: 'reading',
-            message: `Nova leitura registrada - ${building.name}, ${unit.number}`,
+            message: `Nova leitura registrada - ${building.name}, Unidade ${unit.number}`,
             time: timeAgo,
             icon: Clock
           });
@@ -79,13 +86,15 @@ const AdminDashboard = () => {
       }
     });
 
-    // Adicionar atividade de usuário
-    activities.push({
-      type: 'user',
-      message: 'Sistema inicializado com dados de demonstração',
-      time: '1 dia atrás',
-      icon: Users
-    });
+    // Adicionar outras atividades do sistema
+    if (readings.length > 0) {
+      activities.push({
+        type: 'user',
+        message: `Sistema com ${readings.length} leituras registradas`,
+        time: '1 dia atrás',
+        icon: Users
+      });
+    }
 
     setRecentActivity(activities.slice(0, 5));
   }, []);
@@ -112,6 +121,17 @@ const AdminDashboard = () => {
       case 'reading': return 'text-green-600';
       default: return 'text-gray-600';
     }
+  };
+
+  const chartConfig = {
+    agua: {
+      label: "Água (L)",
+      color: "hsl(221, 83%, 53%)",
+    },
+    energia: {
+      label: "Energia (kWh)", 
+      color: "hsl(142, 76%, 36%)",
+    },
   };
 
   return (
@@ -164,16 +184,35 @@ const AdminDashboard = () => {
             <CardDescription>Consumo médio de água e energia</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ChartContainer config={chartConfig}>
               <BarChart data={consumptionData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="agua" fill="#3B82F6" name="Água (L)" />
-                <Bar dataKey="energia" fill="#10B981" name="Energia (kWh)" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar 
+                  dataKey="agua" 
+                  fill="var(--color-agua)" 
+                  name="Água (L)"
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar 
+                  dataKey="energia" 
+                  fill="var(--color-energia)" 
+                  name="Energia (kWh)"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
 
