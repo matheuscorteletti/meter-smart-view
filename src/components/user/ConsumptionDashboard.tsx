@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Cell, AreaChart, Area, Pie } from 'recharts';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 import ReportsDialog from './ReportsDialog';
 
 interface ConsumptionData {
@@ -25,7 +26,9 @@ interface ConsumptionData {
 
 const ConsumptionDashboard = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('all');
+  const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -40,12 +43,26 @@ const ConsumptionDashboard = () => {
 
   useEffect(() => {
     const buildingsData = getBuildings();
+    const unitsData = getUnits();
     setBuildings(buildingsData);
+    setUnits(unitsData);
   }, []);
 
   useEffect(() => {
+    // Filtrar unidades quando um edifício é selecionado
+    if (selectedBuilding === 'all') {
+      setUnits(getUnits());
+      setSelectedUnit('all');
+    } else {
+      const filteredUnits = getUnits().filter(unit => unit.buildingId === selectedBuilding);
+      setUnits(filteredUnits);
+      setSelectedUnit('all');
+    }
+  }, [selectedBuilding]);
+
+  useEffect(() => {
     loadConsumptionData();
-  }, [selectedBuilding, selectedPeriod, startDate, endDate]);
+  }, [selectedBuilding, selectedUnit, selectedPeriod, startDate, endDate]);
 
   const loadConsumptionData = () => {
     const buildingsData = getBuildings();
@@ -70,9 +87,18 @@ const ConsumptionDashboard = () => {
       filteredReadings = filteredReadings.filter(r => new Date(r.date) >= dateFrom);
     }
 
-    // Filtrar por edifício
-    if (selectedBuilding !== 'all') {
-      const buildingUnits = unitsData.filter(u => u.buildingId === selectedBuilding);
+    // Filtrar por edifício e unidade
+    if (selectedBuilding !== 'all' || selectedUnit !== 'all') {
+      let buildingUnits = unitsData;
+      
+      if (selectedBuilding !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.buildingId === selectedBuilding);
+      }
+      
+      if (selectedUnit !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.id === selectedUnit);
+      }
+      
       const buildingMeters = metersData.filter(m => buildingUnits.some(u => u.id === m.unitId));
       filteredReadings = filteredReadings.filter(r => buildingMeters.some(m => m.id === r.meterId));
     }
@@ -127,6 +153,37 @@ const ConsumptionDashboard = () => {
     });
   };
 
+  const exportDataToCSV = () => {
+    // Criar dados CSV
+    const csvHeaders = ['Data', 'Água (L)', 'Energia (kWh)'];
+    const csvData = consumptionData.map(item => [
+      item.date,
+      item.agua.toFixed(2),
+      item.energia.toFixed(2)
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    // Criar e baixar arquivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `dados-consumo-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Dados exportados",
+      description: "Os dados foram exportados com sucesso para CSV!",
+    });
+  };
+
   const pieData = [
     { name: 'Água', value: summaryData.totalWater, color: '#3B82F6' },
     { name: 'Energia', value: summaryData.totalEnergy, color: '#10B981' },
@@ -141,7 +198,7 @@ const ConsumptionDashboard = () => {
         </div>
         <div className="flex gap-2">
           <ReportsDialog />
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportDataToCSV}>
             <Download className="w-4 h-4 mr-2" />
             Exportar Dados
           </Button>
@@ -153,7 +210,7 @@ const ConsumptionDashboard = () => {
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="space-y-2">
             <Label>Edifício</Label>
             <Select value={selectedBuilding} onValueChange={setSelectedBuilding}>
@@ -165,6 +222,23 @@ const ConsumptionDashboard = () => {
                 {buildings.map(building => (
                   <SelectItem key={building.id} value={building.id}>
                     {building.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Unidade</Label>
+            <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Unidades</SelectItem>
+                {units.map(unit => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    Unidade {unit.number}
                   </SelectItem>
                 ))}
               </SelectContent>

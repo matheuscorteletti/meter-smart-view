@@ -7,18 +7,21 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building } from '@/types';
+import { Building, Unit } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import { FileText, Calendar as CalendarIcon, Download, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 const ReportsDialog = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('all');
+  const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
@@ -31,8 +34,22 @@ const ReportsDialog = () => {
 
   useEffect(() => {
     const buildingsData = getBuildings();
+    const unitsData = getUnits();
     setBuildings(buildingsData);
+    setUnits(unitsData);
   }, []);
+
+  useEffect(() => {
+    // Filtrar unidades quando um edifício é selecionado
+    if (selectedBuilding === 'all') {
+      setUnits(getUnits());
+      setSelectedUnit('all');
+    } else {
+      const filteredUnits = getUnits().filter(unit => unit.buildingId === selectedBuilding);
+      setUnits(filteredUnits);
+      setSelectedUnit('all');
+    }
+  }, [selectedBuilding]);
 
   const generatePDFReport = () => {
     // Coletar dados para o relatório
@@ -58,8 +75,17 @@ const ReportsDialog = () => {
       filteredReadings = filteredReadings.filter(r => new Date(r.date) >= dateFrom);
     }
 
-    if (selectedBuilding !== 'all') {
-      const buildingUnits = unitsData.filter(u => u.buildingId === selectedBuilding);
+    if (selectedBuilding !== 'all' || selectedUnit !== 'all') {
+      let buildingUnits = unitsData;
+      
+      if (selectedBuilding !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.buildingId === selectedBuilding);
+      }
+      
+      if (selectedUnit !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.id === selectedUnit);
+      }
+      
       const buildingMeters = metersData.filter(m => buildingUnits.some(u => u.id === m.unitId));
       filteredReadings = filteredReadings.filter(r => buildingMeters.some(m => m.id === r.meterId));
     }
@@ -75,40 +101,77 @@ const ReportsDialog = () => {
 
     const alerts = filteredReadings.filter(r => r.isAlert).length;
 
-    // Simular geração de PDF (em uma implementação real, você usaria uma biblioteca como jsPDF ou Puppeteer)
-    const reportData = {
-      title: 'Relatório de Consumo',
-      period: selectedPeriod === 'custom' && startDate && endDate
-        ? `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
-        : `Últimos ${selectedPeriod} dias`,
-      building: selectedBuilding === 'all' 
-        ? 'Todos os Edifícios' 
-        : buildingsData.find(b => b.id === selectedBuilding)?.name || 'N/A',
-      summary: {
-        totalWater: totalWater.toFixed(1),
-        totalEnergy: totalEnergy.toFixed(1),
-        alerts,
-        totalReadings: filteredReadings.length,
-      },
-      options: reportOptions,
-    };
-
-    // Em uma implementação real, aqui você geraria o PDF
-    console.log('Dados do relatório:', reportData);
+    // Gerar PDF usando jsPDF
+    const doc = new jsPDF();
     
-    // Simular download
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `relatorio-consumo-${format(new Date(), 'yyyy-MM-dd')}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Título
+    doc.setFontSize(20);
+    doc.text('Relatório de Consumo', 20, 30);
+    
+    // Período
+    const periodText = selectedPeriod === 'custom' && startDate && endDate
+      ? `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
+      : `Últimos ${selectedPeriod} dias`;
+    doc.setFontSize(12);
+    doc.text(`Período: ${periodText}`, 20, 45);
+    
+    // Edifício e Unidade
+    const buildingText = selectedBuilding === 'all' 
+      ? 'Todos os Edifícios' 
+      : buildingsData.find(b => b.id === selectedBuilding)?.name || 'N/A';
+    const unitText = selectedUnit === 'all'
+      ? 'Todas as Unidades'
+      : `Unidade ${unitsData.find(u => u.id === selectedUnit)?.number || 'N/A'}`;
+    
+    doc.text(`Edifício: ${buildingText}`, 20, 55);
+    doc.text(`Unidade: ${unitText}`, 20, 65);
+    
+    // Resumo
+    if (reportOptions.includeSummary) {
+      doc.setFontSize(14);
+      doc.text('Resumo Executivo', 20, 85);
+      doc.setFontSize(10);
+      doc.text(`Consumo Total de Água: ${totalWater.toFixed(1)} L`, 20, 100);
+      doc.text(`Consumo Total de Energia: ${totalEnergy.toFixed(1)} kWh`, 20, 110);
+      doc.text(`Total de Alertas: ${alerts}`, 20, 120);
+      doc.text(`Total de Leituras: ${filteredReadings.length}`, 20, 130);
+    }
+    
+    // Detalhes
+    if (reportOptions.includeDetails && filteredReadings.length > 0) {
+      doc.setFontSize(14);
+      doc.text('Dados Detalhados', 20, 150);
+      doc.setFontSize(8);
+      
+      let yPos = 165;
+      doc.text('Data', 20, yPos);
+      doc.text('Tipo', 50, yPos);
+      doc.text('Leitura', 80, yPos);
+      doc.text('Consumo', 110, yPos);
+      doc.text('Alerta', 140, yPos);
+      
+      filteredReadings.slice(0, 20).forEach((reading, index) => {
+        const meter = metersData.find(m => m.id === reading.meterId);
+        yPos += 10;
+        
+        if (yPos > 280) {
+          doc.addPage();
+          yPos = 30;
+        }
+        
+        doc.text(format(new Date(reading.date), 'dd/MM/yyyy'), 20, yPos);
+        doc.text(meter?.type === 'water' ? 'Água' : 'Energia', 50, yPos);
+        doc.text(reading.reading.toString(), 80, yPos);
+        doc.text(reading.consumption.toFixed(1), 110, yPos);
+        doc.text(reading.isAlert ? 'Sim' : 'Não', 140, yPos);
+      });
+    }
+    
+    // Salvar PDF
+    doc.save(`relatorio-consumo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 
     toast({
-      title: "Relatório gerado",
+      title: "Relatório PDF gerado",
       description: "O relatório foi gerado e baixado com sucesso!",
     });
 
@@ -145,6 +208,23 @@ const ReportsDialog = () => {
                   {buildings.map(building => (
                     <SelectItem key={building.id} value={building.id}>
                       {building.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as Unidades</SelectItem>
+                  {units.map(unit => (
+                    <SelectItem key={unit.id} value={unit.id}>
+                      Unidade {unit.number}
                     </SelectItem>
                   ))}
                 </SelectContent>
