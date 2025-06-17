@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ const BuildingSelector: React.FC<BuildingSelectorProps> = ({ buildings, onSelect
       <div className="text-center">
         <Building2 className="w-16 h-16 text-blue-600 mx-auto mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Selecione um Prédio</h1>
-        <p className="text-gray-600">Escolha o prédio para visualizar seus medidores</p>
+        <p className="text-gray-600">Selecione o prédio para registrar a leitura dos medidores</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
