@@ -6,6 +6,10 @@ const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const installRoutes = require('./routes/install');
+const buildingRoutes = require('./routes/buildings');
+const unitRoutes = require('./routes/units');
+const meterRoutes = require('./routes/meters');
+const readingRoutes = require('./routes/readings');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +36,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/install', installRoutes);
+app.use('/api/buildings', buildingRoutes);
+app.use('/api/units', unitRoutes);
+app.use('/api/meters', meterRoutes);
+app.use('/api/readings', readingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
