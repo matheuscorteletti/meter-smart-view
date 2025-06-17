@@ -6,167 +6,106 @@ Este guia explica como fazer o deploy desta aplicação na sua infraestrutura in
 ## Estrutura da Aplicação
 
 - **Frontend**: React + Vite + TypeScript
-- **Estado atual**: Usando localStorage (demonstração)
-- **Necessário**: Backend com APIs REST + Banco MySQL
+- **Backend**: APIs REST (a implementar)
+- **Banco**: MySQL 8.0 separado
 
-## Pré-requisitos
+## Ambiente de Desenvolvimento com Docker
 
-- Node.js 18+ 
-- Servidor web (nginx, apache)
-- Banco MySQL/PostgreSQL
-- Backend (Node.js, PHP, Python, etc.)
+### Pré-requisitos
+- Docker e Docker Compose instalados
+- Git instalado
 
-## 1. Frontend (React)
+### Configuração Rápida
 
-### Instalação:
 ```bash
-npm install
-npm run build
+# 1. Clone o repositório
+git clone [seu-repositorio-url]
+cd [nome-do-projeto]
+
+# 2. Torne o script executável (Linux/Mac)
+chmod +x docker-dev.sh
+
+# 3. Inicie o ambiente
+./docker-dev.sh up
 ```
 
-### Deploy:
-- Copie a pasta `dist/` para seu servidor web
-- Configure nginx/apache para servir os arquivos estáticos
-- Configure proxy para APIs do backend
+### Serviços Disponíveis
 
-### Configuração nginx exemplo:
-```nginx
-server {
-    listen 80;
-    server_name seu-dominio.com;
-    
-    location / {
-        root /path/to/dist;
-        try_files $uri $uri/ /index.html;
-    }
-    
-    location /api/ {
-        proxy_pass http://localhost:3001;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+Após executar `./docker-dev.sh up`:
+
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:3001 (quando implementar)
+- **MySQL**: localhost:3306
+- **phpMyAdmin**: http://localhost:8080
+
+### Comandos Úteis
+
+```bash
+# Iniciar todo ambiente
+./docker-dev.sh up
+
+# Iniciar apenas banco + phpMyAdmin
+./docker-dev.sh db-only
+
+# Ver logs em tempo real
+./docker-dev.sh logs
+
+# Parar ambiente
+./docker-dev.sh down
+
+# Limpar tudo (containers e dados)
+./docker-dev.sh clean
 ```
 
-## 2. Backend (APIs necessárias)
+### Credenciais do Banco
 
-### Endpoints para implementar:
+- **Host**: localhost (ou 'database' dentro do Docker)
+- **Porta**: 3306
+- **Database**: meter_system
+- **Usuário**: root
+- **Senha**: password123
+- **Usuário App**: meter_user / meter_pass
 
-#### Autenticação:
-- `POST /api/auth/login` - Login do usuário
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/me` - Dados do usuário atual
+## Próximos Passos
 
-#### Edifícios:
-- `GET /api/buildings` - Listar edifícios
-- `POST /api/buildings` - Criar edifício
-- `PUT /api/buildings/:id` - Atualizar edifício
-- `DELETE /api/buildings/:id` - Deletar edifício
+### 1. Testar o Frontend
+O frontend já funciona com dados de exemplo (localStorage).
 
-#### Unidades:
-- `GET /api/units` - Listar unidades
-- `POST /api/units` - Criar unidade
-- `PUT /api/units/:id` - Atualizar unidade
-- `DELETE /api/units/:id` - Deletar unidade
+### 2. Implementar Backend
+Crie a pasta `backend/` com suas APIs REST:
 
-#### Medidores:
-- `GET /api/meters` - Listar medidores
-- `POST /api/meters` - Criar medidor
-- `PUT /api/meters/:id` - Atualizar medidor
-- `DELETE /api/meters/:id` - Deletar medidor
-
-#### Leituras:
-- `GET /api/readings` - Listar leituras
-- `POST /api/readings` - Criar leitura
-- `PUT /api/readings/:id` - Atualizar leitura
-- `DELETE /api/readings/:id` - Deletar leitura
-
-## 3. Banco de Dados MySQL
-
-### Tabelas necessárias:
-
-```sql
--- Usuários
-CREATE TABLE users (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'user') NOT NULL,
-    building_id VARCHAR(36),
-    unit_id VARCHAR(36),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Edifícios
-CREATE TABLE buildings (
-    id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Unidades
-CREATE TABLE units (
-    id VARCHAR(36) PRIMARY KEY,
-    building_id VARCHAR(36) NOT NULL,
-    number VARCHAR(50) NOT NULL,
-    floor VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (building_id) REFERENCES buildings(id)
-);
-
--- Medidores
-CREATE TABLE meters (
-    id VARCHAR(36) PRIMARY KEY,
-    unit_id VARCHAR(36) NOT NULL,
-    type ENUM('water', 'energy') NOT NULL,
-    total_digits INT NOT NULL,
-    calculation_digits INT NOT NULL,
-    initial_reading DECIMAL(10,2) NOT NULL,
-    threshold DECIMAL(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (unit_id) REFERENCES units(id)
-);
-
--- Leituras
-CREATE TABLE readings (
-    id VARCHAR(36) PRIMARY KEY,
-    meter_id VARCHAR(36) NOT NULL,
-    reading DECIMAL(10,2) NOT NULL,
-    consumption DECIMAL(10,2) NOT NULL,
-    date TIMESTAMP NOT NULL,
-    is_alert BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (meter_id) REFERENCES meters(id)
-);
+```bash
+mkdir backend
+cd backend
+npm init -y
+# ... implementar APIs
 ```
 
-## 4. Variáveis de Ambiente
+### 3. Conectar Frontend às APIs
+Modifique o frontend para usar as APIs ao invés do localStorage.
 
-Crie um arquivo `.env.production`:
+### 4. Deploy em Produção
+Use o `Dockerfile` original para produção com nginx.
 
-```env
-# API Base URL
-VITE_API_BASE_URL=http://seu-servidor.com/api
+## Estrutura de Pastas Recomendada
 
-# Outras configurações
-VITE_APP_NAME=Sistema de Medidores
-VITE_APP_VERSION=1.0.0
 ```
-
-## 5. Próximos Passos
-
-1. **Escolha sua stack de backend** (Node.js, PHP, Python, etc.)
-2. **Implemente as APIs** conforme os endpoints listados
-3. **Configure o banco MySQL** com as tabelas
-4. **Modifique o frontend** para usar as APIs ao invés do localStorage
-5. **Configure seu servidor web** para servir o frontend e proxy das APIs
+projeto/
+├── src/                 # Frontend React
+├── backend/            # APIs (a criar)
+├── deployment/         # Configs de deploy
+├── docker-compose.yml  # Ambiente desenvolvimento
+├── Dockerfile         # Build produção
+├── Dockerfile.dev     # Build desenvolvimento
+└── docker-dev.sh      # Script helper
+```
 
 ## Suporte
 
-Se precisar de ajuda com algum desses passos, posso te auxiliar com:
-- Código do backend (Node.js, PHP, etc.)
-- Configuração do banco
-- Modificação do frontend para usar APIs
-- Configuração do servidor web
+Se precisar de ajuda com:
+- Implementação do backend
+- Conexão frontend com APIs
+- Configuração de produção
+- Problemas com Docker
+
+Basta perguntar!

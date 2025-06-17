@@ -1,15 +1,18 @@
 
-# Docker Compose para desenvolvimento local
-# Útil para testar antes do deploy na infraestrutura
+# Docker Compose para ambiente de desenvolvimento
+# Banco de dados separado e serviços bem organizados
 
 version: '3.8'
 
 services:
-  # Frontend (desenvolvimento)
+  # Frontend React
   frontend:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: meter-frontend
     ports:
-      - "8080:8080"
+      - "3000:3000"
     volumes:
       - .:/app
       - /app/node_modules
@@ -17,51 +20,77 @@ services:
       - VITE_API_BASE_URL=http://localhost:3001/api
     depends_on:
       - backend
-      - database
+    networks:
+      - meter-network
 
-  # Backend (exemplo Node.js - você precisa implementar)
+  # Backend (preparado para quando criar)
   backend:
-    # build: ./backend  # Quando criar o backend
     image: node:18-alpine
+    container_name: meter-backend
     ports:
       - "3001:3001"
     volumes:
       - ./backend:/app
     working_dir: /app
-    command: npm run dev
+    command: sh -c "npm install && npm run dev"
     environment:
+      - NODE_ENV=development
       - DB_HOST=database
       - DB_PORT=3306
       - DB_NAME=meter_system
       - DB_USER=root
       - DB_PASSWORD=password123
-      - JWT_SECRET=seu_jwt_secret_aqui
+      - JWT_SECRET=seu_jwt_secret_muito_seguro_aqui
+      - PORT=3001
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    networks:
+      - meter-network
 
-  # Banco MySQL
+  # Banco MySQL separado
   database:
     image: mysql:8.0
+    container_name: meter-mysql
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: password123
       MYSQL_DATABASE: meter_system
+      MYSQL_USER: meter_user
+      MYSQL_PASSWORD: meter_pass
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./deployment/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./deployment/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+      interval: 10s
+    networks:
+      - meter-network
     restart: unless-stopped
 
-  # nginx (proxy)
-  nginx:
-    image: nginx:alpine
+  # phpMyAdmin para gerenciar o banco (opcional)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: meter-phpmyadmin
     ports:
-      - "80:80"
-    volumes:
-      - ./deployment/nginx.conf:/etc/nginx/nginx.conf
+      - "8080:80"
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: password123
     depends_on:
-      - frontend
-      - backend
+      - database
+    networks:
+      - meter-network
 
 volumes:
   mysql_data:
+    driver: local
+
+networks:
+  meter-network:
+    driver: bridge
