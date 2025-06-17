@@ -163,7 +163,7 @@ const ReportsDialog = () => {
       
       // Tabela de resumo
       doc.setDrawColor(200, 200, 200);
-      doc.rect(20, yPos - 5, 170, 40);
+      doc.rect(20, yPos - 5, 170, 50);
       
       // Cabeçalhos da tabela
       doc.setFillColor(240, 240, 240);
@@ -178,7 +178,7 @@ const ReportsDialog = () => {
       
       // Dados do resumo
       const summaryData = [
-        ['Consumo Total de Água', `${totalWater.toFixed(1)} L`],
+        ['Consumo Total de Água', `${totalWater.toFixed(3)} m³ (${(totalWater * 1000).toFixed(0)} L)`],
         ['Consumo Total de Energia', `${totalEnergy.toFixed(1)} kWh`],
         ['Total de Alertas', alerts.toString()],
         ['Total de Leituras', totalReadings.toString()],
@@ -285,7 +285,11 @@ const ReportsDialog = () => {
         doc.text(unit.number.substring(0, 8), 70, yPos + 2);
         doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
         doc.text(reading.reading.toString(), 110, yPos + 2);
-        doc.text(reading.consumption.toFixed(1), 130, yPos + 2);
+        // Updated consumption display with proper units
+        const consumptionText = meter.type === 'water' 
+          ? `${reading.consumption.toFixed(3)}m³`  
+          : `${reading.consumption.toFixed(1)}kWh`;
+        doc.text(consumptionText, 130, yPos + 2);
         doc.text(meter.threshold?.toString() || 'N/A', 150, yPos + 2);
         doc.text(reading.isAlert ? 'SIM' : 'Não', 170, yPos + 2);
         

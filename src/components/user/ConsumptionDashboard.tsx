@@ -154,10 +154,11 @@ const ConsumptionDashboard = () => {
 
   const exportDataToCSV = () => {
     // Criar dados CSV
-    const csvHeaders = ['Data', 'Água (L)', 'Energia (kWh)'];
+    const csvHeaders = ['Data', 'Água (m³)', 'Água (L)', 'Energia (kWh)'];
     const csvData = consumptionData.map(item => [
       item.date,
-      item.agua.toFixed(2),
+      item.agua.toFixed(3),
+      (item.agua * 1000).toFixed(0),
       item.energia.toFixed(2)
     ]);
 
@@ -181,6 +182,29 @@ const ConsumptionDashboard = () => {
       title: "Dados exportados",
       description: "Os dados foram exportados com sucesso para CSV!",
     });
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-semibold">{`Data: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="mt-1">
+              {entry.dataKey === 'agua' ? (
+                <>
+                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toFixed(3)} m³`}</p>
+                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toFixed(0)} litros)`}</p>
+                </>
+              ) : (
+                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toFixed(2)} kWh`}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -290,7 +314,7 @@ const ConsumptionDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de Resumo */}
+      {/* Cards de Resumo - Updated with proper units */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -300,8 +324,10 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryData.totalWater.toFixed(1)}L</div>
-            <p className="text-xs text-muted-foreground">Média: {summaryData.avgWater.toFixed(1)}L/dia</p>
+            <div className="text-2xl font-bold">{summaryData.totalWater.toFixed(3)}m³</div>
+            <p className="text-xs text-muted-foreground">
+              {(summaryData.totalWater * 1000).toFixed(0)} litros | Média: {summaryData.avgWater.toFixed(3)}m³/dia
+            </p>
           </CardContent>
         </Card>
 
@@ -357,8 +383,8 @@ const ConsumptionDashboard = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="agua" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="Água (L)" />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="agua" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="Água (m³)" />
               <Area type="monotone" dataKey="energia" stackId="1" stroke="#10B981" fill="#10B981" name="Energia (kWh)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -376,8 +402,8 @@ const ConsumptionDashboard = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="agua" stroke="#3B82F6" strokeWidth={2} name="Água (L)" />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="agua" stroke="#3B82F6" strokeWidth={2} name="Água (m³)" />
               <Line type="monotone" dataKey="energia" stroke="#10B981" strokeWidth={2} name="Energia (kWh)" />
             </LineChart>
           </ResponsiveContainer>

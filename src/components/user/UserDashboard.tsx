@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,10 +110,17 @@ const UserDashboard = () => {
                         </div>
                         <div>
                           <p className="text-gray-600">Consumo</p>
-                          <p className="font-semibold text-lg flex items-center">
+                          <div className="font-semibold text-lg flex items-center">
                             <TrendingUp className="w-4 h-4 mr-1" />
-                            {meter.latestReading.consumption}
-                          </p>
+                            {meter.type === 'water' ? (
+                              <div>
+                                <div>{meter.latestReading.consumption.toFixed(3)}m³</div>
+                                <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toFixed(0)}L)</div>
+                              </div>
+                            ) : (
+                              <div>{meter.latestReading.consumption.toFixed(2)}kWh</div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 space-y-1">
