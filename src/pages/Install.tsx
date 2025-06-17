@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Loader2, Lock } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import DatabaseConfig from '@/components/install/DatabaseConfig';
+import AdminConfig from '@/components/install/AdminConfig';
+import InstallProgress from '@/components/install/InstallProgress';
+import AlreadyInstalledView from '@/components/install/AlreadyInstalledView';
 
 interface InstallConfig {
   dbHost: string;
@@ -69,20 +71,24 @@ const Install = () => {
     checkInstallation();
   }, []);
 
+  const handleConfigChange = (field: string, value: string) => {
+    setConfig(prev => ({ ...prev, [field]: value }));
+  };
+
   const updateStep = (stepId: string, status: InstallStep['status'], message?: string) => {
     setInstallSteps(prev => prev.map(step => 
       step.id === stepId ? { ...step, status, message } : step
     ));
   };
 
-  const handleInstall = async () => {
+  const validateForm = () => {
     if (!config.dbUser || !config.dbPassword || !config.adminEmail || !config.adminPassword) {
       toast({
         title: "Campos obrigatórios",
         description: "Todos os campos são obrigatórios",
         variant: "destructive"
       });
-      return;
+      return false;
     }
 
     if (config.adminPassword.length < 6) {
@@ -91,8 +97,14 @@ const Install = () => {
         description: "A senha do administrador deve ter pelo menos 6 caracteres",
         variant: "destructive"
       });
-      return;
+      return false;
     }
+
+    return true;
+  };
+
+  const handleInstall = async () => {
+    if (!validateForm()) return;
 
     setIsInstalling(true);
     
@@ -195,19 +207,6 @@ const Install = () => {
     }
   };
 
-  const getStepIcon = (status: InstallStep['status']) => {
-    switch (status) {
-      case 'running':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <div className="h-4 w-4 rounded-full border-2 border-gray-300" />;
-    }
-  };
-
   if (checkingInstallation) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -220,37 +219,10 @@ const Install = () => {
   }
 
   if (isInstalled) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Lock className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl font-bold text-red-700">
-              Sistema já Instalado
-            </CardTitle>
-            <CardDescription>
-              O sistema já foi instalado anteriormente
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Alert className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Por segurança, a instalação não pode ser executada novamente.
-                Se precisar reinstalar, entre em contato com o suporte técnico.
-              </AlertDescription>
-            </Alert>
-            <Button 
-              onClick={() => window.location.href = '/'}
-              className="w-full"
-            >
-              Ir para o Sistema
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <AlreadyInstalledView />;
   }
+
+  const isFormValid = config.dbUser && config.dbPassword && config.adminEmail && config.adminPassword;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -265,141 +237,23 @@ const Install = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Database Configuration */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Configuração do Banco de Dados</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="dbHost">Host do MySQL</Label>
-                <Input
-                  id="dbHost"
-                  value={config.dbHost}
-                  onChange={(e) => setConfig(prev => ({ ...prev, dbHost: e.target.value }))}
-                  placeholder="localhost ou IP"
-                  disabled={isInstalling}
-                />
-              </div>
+          <DatabaseConfig 
+            config={config}
+            onConfigChange={handleConfigChange}
+            isDisabled={isInstalling}
+          />
 
-              <div className="space-y-2">
-                <Label htmlFor="dbPort">Porta</Label>
-                <Input
-                  id="dbPort"
-                  value={config.dbPort}
-                  onChange={(e) => setConfig(prev => ({ ...prev, dbPort: e.target.value }))}
-                  placeholder="3306"
-                  disabled={isInstalling}
-                />
-              </div>
+          <AdminConfig 
+            config={config}
+            onConfigChange={handleConfigChange}
+            isDisabled={isInstalling}
+          />
 
-              <div className="space-y-2">
-                <Label htmlFor="dbName">Nome do Banco</Label>
-                <Input
-                  id="dbName"
-                  value={config.dbName}
-                  onChange={(e) => setConfig(prev => ({ ...prev, dbName: e.target.value }))}
-                  placeholder="meter"
-                  disabled={isInstalling}
-                />
-              </div>
+          {isInstalling && <InstallProgress steps={installSteps} />}
 
-              <div className="space-y-2">
-                <Label htmlFor="dbUser">Usuário MySQL</Label>
-                <Input
-                  id="dbUser"
-                  value={config.dbUser}
-                  onChange={(e) => setConfig(prev => ({ ...prev, dbUser: e.target.value }))}
-                  placeholder="root ou meter"
-                  disabled={isInstalling}
-                  required
-                />
-              </div>
-
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="dbPassword">Senha MySQL</Label>
-                <Input
-                  id="dbPassword"
-                  type="password"
-                  value={config.dbPassword}
-                  onChange={(e) => setConfig(prev => ({ ...prev, dbPassword: e.target.value }))}
-                  placeholder="Senha do banco MySQL"
-                  disabled={isInstalling}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Configuration */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold border-b pb-2">Dados do Administrador</h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="adminName">Nome Completo</Label>
-                <Input
-                  id="adminName"
-                  value={config.adminName}
-                  onChange={(e) => setConfig(prev => ({ ...prev, adminName: e.target.value }))}
-                  placeholder="Nome do administrador"
-                  disabled={isInstalling}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="adminEmail">Email</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={config.adminEmail}
-                  onChange={(e) => setConfig(prev => ({ ...prev, adminEmail: e.target.value }))}
-                  placeholder="admin@medidores.local"
-                  disabled={isInstalling}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="adminPassword">Senha</Label>
-                <Input
-                  id="adminPassword"
-                  type="password"
-                  value={config.adminPassword}
-                  onChange={(e) => setConfig(prev => ({ ...prev, adminPassword: e.target.value }))}
-                  placeholder="Senha do administrador (mín. 6 caracteres)"
-                  disabled={isInstalling}
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Install Progress */}
-          {isInstalling && (
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg">Progresso da Instalação</h3>
-              {installSteps.map((step) => (
-                <div key={step.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  {getStepIcon(step.status)}
-                  <div className="flex-1">
-                    <div className="font-medium">{step.name}</div>
-                    {step.message && (
-                      <div className={`text-sm ${
-                        step.status === 'error' ? 'text-red-600' : 'text-gray-600'
-                      }`}>
-                        {step.message}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Action Button */}
           <Button 
             onClick={handleInstall}
-            disabled={isInstalling || !config.dbUser || !config.dbPassword || !config.adminEmail || !config.adminPassword}
+            disabled={isInstalling || !isFormValid}
             className="w-full h-12 text-lg"
           >
             {isInstalling ? (
@@ -412,7 +266,6 @@ const Install = () => {
             )}
           </Button>
 
-          {/* Info Alert */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>

@@ -6,6 +6,7 @@ Sistema completo para gerenciamento de medidores de água e energia em edifício
 ## 🚀 Características
 
 - **Interface Moderna**: React + TypeScript + Tailwind CSS
+- **Instalação Web**: Interface gráfica para configuração inicial
 - **Gerenciamento Completo**: Edifícios, unidades, medidores e leituras
 - **Alertas Inteligentes**: Notificações de consumo elevado
 - **Relatórios**: Gráficos e análises de consumo
@@ -16,103 +17,105 @@ Sistema completo para gerenciamento de medidores de água e energia em edifício
 
 - **Frontend**: React 18 + Vite + TypeScript
 - **UI Components**: Shadcn/UI + Tailwind CSS
-- **Backend**: Node.js + Express (preparado)
+- **Backend**: Node.js + Express
 - **Banco de Dados**: MySQL 8.0+
-- **Deploy**: Docker + Docker Compose
+- **Instalador**: Interface web interativa
 
-## 📦 Instalação Rápida
+## 📦 Instalação
 
 ### Pré-requisitos
-- Docker e Docker Compose
-- MySQL Server em 192.168.100.240
-- Git
+- **Node.js 18+**
+- **MySQL 8.0+** (com usuário configurado)
+- **Git**
 
-### 1. Configurar Banco de Dados
-```bash
-# Execute o script de instalação no MySQL
-mysql -u root -p < /home/wise/init.sql
-```
-
-### 2. Iniciar Sistema
+### 1. Clonar e Configurar
 ```bash
 # Clonar repositório
 git clone [SEU_REPOSITORIO]
 cd sistema-medidores
 
-# Tornar script executável
-chmod +x docker-dev.sh
-
-# Iniciar aplicação
-./docker-dev.sh up
+# Instalar dependências
+npm install
 ```
 
-### 3. Acessar Sistema
-- **Frontend**: http://localhost:3000
-- **Backend**: http://localhost:3001
+### 2. Instalação via Interface Web (Recomendada)
+```bash
+# Iniciar servidor de desenvolvimento
+npm run dev
 
-## 🔐 Credenciais de Acesso
+# Acessar instalador web
+http://localhost:3000/install
+```
 
-### Contas de Demonstração
+**No instalador web você irá configurar:**
+- 🔗 **Conexão MySQL**: Host, porta, usuário e senha
+- 🗄️ **Banco de Dados**: Nome do banco (será criado automaticamente)
+- 👤 **Administrador**: Nome, email e senha do primeiro usuário
+
+### 3. Instalação via Linha de Comando (Alternativa)
+```bash
+# Executar instalador automático
+./quick-install.sh
+
+# OU instalação manual
+node install.js
+```
+
+## 🎯 Instalador Web
+
+O sistema possui um **instalador web completo** que:
+
+✅ **Testa a conexão** com o banco MySQL  
+✅ **Cria o arquivo .env** com configurações seguras  
+✅ **Cria o banco de dados** automaticamente  
+✅ **Instala todas as tabelas** e estrutura  
+✅ **Insere dados iniciais** para demonstração  
+✅ **Configura o usuário administrador**  
+✅ **Bloqueia reinstalações** por segurança  
+
+### Como usar o instalador:
+
+1. **Acesse**: `http://localhost:3000/install`
+2. **Configure o MySQL**: Informe host, porta, usuário e senha
+3. **Defina o administrador**: Nome, email e senha
+4. **Inicie a instalação**: Clique em "🚀 Iniciar Instalação"
+5. **Acompanhe o progresso**: Veja cada etapa sendo executada
+6. **Sistema pronto**: Redirecionamento automático após conclusão
+
+## 🔐 Primeiro Acesso
+
+Após a instalação via web:
+- **URL**: http://localhost:3000
+- **Login**: Email definido na instalação
+- **Senha**: Senha definida na instalação
+
+### Contas de Demonstração (se usar dados de exemplo)
 - **Admin**: admin@demo.com / admin123
 - **Usuário**: user@demo.com / user123  
 - **Visualizador**: viewer@demo.com / viewer123
 
-**Nota**: Senhas devem ter pelo menos 6 caracteres
+## 🛡️ Segurança da Instalação
 
-### Comandos Administrativos
+- ✅ **Proteção contra reinstalação**: Instalador é desabilitado automaticamente
+- ✅ **Verificação de integridade**: Testa conexão antes de prosseguir
+- ✅ **JWT seguro**: Chave gerada automaticamente com 64 caracteres
+- ✅ **Validação de campos**: Verificação de dados obrigatórios
+- ✅ **Senhas criptografadas**: Hash bcrypt para segurança
 
-#### Criar Novo Usuário Administrador
-```sql
--- Conectar ao MySQL
-mysql -u root -p
+## 🔄 Reinstalação
 
--- Usar banco de dados
-USE meter;
+Para reinstalar o sistema:
 
--- Criar novo administrador (substitua os dados)
-INSERT INTO users (id, name, email, password_hash, role) VALUES 
-(UUID(), 'Seu Nome', 'seu@email.com', '$2b$10$hash_da_senha_aqui', 'admin');
-```
-
-#### Resetar Senha do Admin (Emergência)
-```sql
--- Para resetar senha do admin principal
--- Primeiro gere o hash da nova senha em: https://bcrypt-generator.com/
--- Use 10 rounds de criptografia
-
-UPDATE users 
-SET password_hash = '$2b$10$NOVO_HASH_AQUI' 
-WHERE email = 'admin@demo.com';
-
--- Exemplo com senha "novasenha123":
-UPDATE users 
-SET password_hash = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' 
-WHERE email = 'admin@demo.com';
-```
-
-#### Listar Todos os Administradores
-```sql
-SELECT id, name, email, role, created_at 
-FROM users 
-WHERE role = 'admin';
-```
-
-## 📚 Documentação Completa
-
-Consulte o [Guia de Instalação Completo](install/README.md) para:
-- Configuração detalhada do Ubuntu
-- Troubleshooting avançado
-- Configurações de segurança
-- Backup e manutenção
-
-## 🐳 Comandos Docker
+1. **Parar o servidor** se estiver rodando
+2. **Remover o arquivo .env**
+3. **Reiniciar o servidor**
+4. **Acessar novamente** `/install`
 
 ```bash
-./docker-dev.sh up       # Iniciar sistema
-./docker-dev.sh down     # Parar sistema
-./docker-dev.sh logs     # Ver logs
-./docker-dev.sh status   # Status dos containers
-./docker-dev.sh clean    # Limpar ambiente
+# Comandos para reinstalação
+rm .env
+npm run dev
+# Acesse http://localhost:3000/install
 ```
 
 ## 🛠️ Desenvolvimento
@@ -131,15 +134,55 @@ src/
 ├── components/          # Componentes React
 │   ├── admin/          # Área administrativa
 │   ├── user/           # Área do usuário
+│   ├── install/        # Componentes do instalador
 │   └── ui/             # Componentes UI base
 ├── contexts/           # Context providers
 ├── hooks/              # Custom hooks
 ├── lib/                # Utilitários
 ├── pages/              # Páginas principais
+│   └── Install.tsx     # Página do instalador web
 ├── types/              # Definições TypeScript
+backend/                # Backend Node.js
+├── src/routes/
+│   └── install.js      # API do instalador
 install/                # Scripts de instalação
 ├── init.sql           # Script do banco
-└── README.md          # Guia completo
+├── INSTALLER.md       # Documentação do instalador
+└── README.md          # Guias de instalação
+```
+
+## 🐳 Docker (Opcional)
+
+Para usar com Docker:
+
+```bash
+./docker-dev.sh up       # Iniciar sistema
+./docker-dev.sh down     # Parar sistema
+./docker-dev.sh logs     # Ver logs
+./docker-dev.sh status   # Status dos containers
+```
+
+## 📋 Comandos Administrativos
+
+### Resetar Senha do Admin (Emergência)
+```sql
+-- Conectar ao MySQL
+mysql -u root -p
+
+-- Usar banco de dados
+USE meter;
+
+-- Resetar senha (use https://bcrypt-generator.com/ para gerar hash)
+UPDATE users 
+SET password_hash = '$2b$10$NOVO_HASH_AQUI' 
+WHERE email = 'seu@email.com';
+```
+
+### Listar Administradores
+```sql
+SELECT id, name, email, role, created_at 
+FROM users 
+WHERE role = 'admin';
 ```
 
 ## 🔄 Deploy em Produção
@@ -150,19 +193,7 @@ Para ambiente de produção:
 2. Use HTTPS com certificados SSL
 3. Configure backup automático do MySQL
 4. Monitore logs e performance
-5. Implemente rotação de logs
-
-## 🤝 Contribuição
-
-1. Fork o projeto
-2. Crie sua feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
+5. Desabilite instalador em produção
 
 ## ✨ Funcionalidades Principais
 
@@ -180,6 +211,12 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
 - Gerar relatórios da unidade
 - Acompanhar tendências
 
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
 ---
 
 **Desenvolvido para facilitar o gerenciamento de medidores em condomínios e edifícios comerciais.**
+
+**🌟 Instalação simplificada com interface web moderna!**
