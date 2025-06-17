@@ -1,4 +1,3 @@
-
 // Local storage utilities for data persistence
 import { User, Building, Unit, Meter, Reading } from '@/types';
 
@@ -70,65 +69,168 @@ export const initializeSampleData = () => {
 
   const buildings: Building[] = [
     {
-      id: 'building-1',
-      name: 'Edifício Central',
-      address: 'Rua das Flores, 123',
+      id: 'building-1013',
+      name: 'Prédio 1013',
+      address: 'Av Joana Angélica 1013',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'building-1412',
+      name: 'Prédio 1412',
+      address: 'Av Joana Angélica 1412',
       createdAt: new Date().toISOString(),
     },
   ];
 
   const units: Unit[] = [
+    // Unidades do Prédio 1013
     {
-      id: 'unit-1',
-      buildingId: 'building-1',
-      number: '101',
+      id: 'unit-1013-externo',
+      buildingId: 'building-1013',
+      number: 'Externo',
+      floor: 'Térreo',
+    },
+    {
+      id: 'unit-1013-cond-serv',
+      buildingId: 'building-1013',
+      number: 'COND SERV',
+      floor: 'Térreo',
+    },
+    // Unidades do Prédio 1412
+    {
+      id: 'unit-1412-externo',
+      buildingId: 'building-1412',
+      number: 'Externo',
+      floor: 'Térreo',
+    },
+    {
+      id: 'unit-1412-ap001',
+      buildingId: 'building-1412',
+      number: 'AP 001',
+      floor: 'Térreo',
+    },
+    {
+      id: 'unit-1412-ap101',
+      buildingId: 'building-1412',
+      number: 'AP 101',
       floor: '1',
     },
     {
-      id: 'unit-2',
-      buildingId: 'building-1',
-      number: '102',
-      floor: '1',
+      id: 'unit-1412-ap011',
+      buildingId: 'building-1412',
+      number: 'AP 011',
+      floor: 'Térreo',
+    },
+    {
+      id: 'unit-1412-ap012',
+      buildingId: 'building-1412',
+      number: 'AP 012',
+      floor: 'Térreo',
     },
   ];
 
   const meters: Meter[] = [
+    // Medidores do Prédio 1013
     {
-      id: 'meter-1',
-      unitId: 'unit-1',
+      id: 'meter-1013-hidro-externo',
+      unitId: 'unit-1013-externo',
       type: 'water',
       totalDigits: 8,
       calculationDigits: 5,
-      initialReading: 12345,
+      initialReading: 12000,
       threshold: 50,
     },
     {
-      id: 'meter-2',
-      unitId: 'unit-1',
+      id: 'meter-1013-energia-cond',
+      unitId: 'unit-1013-cond-serv',
       type: 'energy',
       totalDigits: 6,
       calculationDigits: 4,
-      initialReading: 5678,
+      initialReading: 5500,
       threshold: 300,
+    },
+    // Medidores do Prédio 1412
+    {
+      id: 'meter-1412-hidro-externo',
+      unitId: 'unit-1412-externo',
+      type: 'water',
+      totalDigits: 8,
+      calculationDigits: 5,
+      initialReading: 15000,
+      threshold: 50,
+    },
+    {
+      id: 'meter-1412-hidro-ap001',
+      unitId: 'unit-1412-ap001',
+      type: 'water',
+      totalDigits: 8,
+      calculationDigits: 5,
+      initialReading: 8500,
+      threshold: 30,
+    },
+    {
+      id: 'meter-1412-hidro-ap101',
+      unitId: 'unit-1412-ap101',
+      type: 'water',
+      totalDigits: 8,
+      calculationDigits: 5,
+      initialReading: 9200,
+      threshold: 30,
+    },
+    {
+      id: 'meter-1412-hidro-ap011',
+      unitId: 'unit-1412-ap011',
+      type: 'water',
+      totalDigits: 8,
+      calculationDigits: 5,
+      initialReading: 7800,
+      threshold: 30,
+    },
+    {
+      id: 'meter-1412-hidro-ap012',
+      unitId: 'unit-1412-ap012',
+      type: 'water',
+      totalDigits: 8,
+      calculationDigits: 5,
+      initialReading: 8100,
+      threshold: 30,
     },
   ];
 
   const readings: Reading[] = [
+    // Algumas leituras de exemplo para o Prédio 1013
     {
-      id: 'reading-1',
-      meterId: 'meter-1',
-      reading: 12367,
-      consumption: 22,
+      id: 'reading-1013-hidro-1',
+      meterId: 'meter-1013-hidro-externo',
+      reading: 12025,
+      consumption: 25,
       date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       isAlert: false,
     },
     {
-      id: 'reading-2',
-      meterId: 'meter-2',
-      reading: 5998,
+      id: 'reading-1013-energia-1',
+      meterId: 'meter-1013-energia-cond',
+      reading: 5820,
       consumption: 320,
       date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       isAlert: true,
+    },
+    // Algumas leituras de exemplo para o Prédio 1412
+    {
+      id: 'reading-1412-externo-1',
+      meterId: 'meter-1412-hidro-externo',
+      reading: 15040,
+      consumption: 40,
+      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      isAlert: false,
+    },
+    {
+      id: 'reading-1412-ap001-1',
+      meterId: 'meter-1412-hidro-ap001',
+      reading: 8518,
+      consumption: 18,
+      date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      isAlert: false,
     },
   ];
 
