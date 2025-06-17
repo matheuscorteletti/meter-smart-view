@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface InstallConfig {
@@ -14,6 +14,9 @@ interface InstallConfig {
   dbName: string;
   dbUser: string;
   dbPassword: string;
+  adminName: string;
+  adminEmail: string;
+  adminPassword: string;
 }
 
 interface InstallStep {
@@ -25,12 +28,18 @@ interface InstallStep {
 
 const Install = () => {
   const { toast } = useToast();
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [checkingInstallation, setCheckingInstallation] = useState(true);
+  
   const [config, setConfig] = useState<InstallConfig>({
     dbHost: 'localhost',
     dbPort: '3306',
     dbName: 'meter',
     dbUser: '',
-    dbPassword: ''
+    dbPassword: '',
+    adminName: 'Administrador',
+    adminEmail: 'admin@medidores.local',
+    adminPassword: ''
   });
 
   const [isInstalling, setIsInstalling] = useState(false);
@@ -38,8 +47,27 @@ const Install = () => {
     { id: 'test', name: 'Testar conexão com banco', status: 'pending' },
     { id: 'env', name: 'Criar arquivo .env', status: 'pending' },
     { id: 'database', name: 'Criar banco de dados', status: 'pending' },
-    { id: 'structure', name: 'Criar estrutura e dados', status: 'pending' }
+    { id: 'structure', name: 'Criar estrutura e dados', status: 'pending' },
+    { id: 'admin', name: 'Criar usuário administrador', status: 'pending' }
   ]);
+
+  // Verificar se o sistema já foi instalado
+  useEffect(() => {
+    const checkInstallation = async () => {
+      try {
+        const response = await fetch('/api/install/check-installation');
+        const result = await response.json();
+        setIsInstalled(result.isInstalled);
+      } catch (error) {
+        console.log('Sistema não instalado ainda');
+        setIsInstalled(false);
+      } finally {
+        setCheckingInstallation(false);
+      }
+    };
+
+    checkInstallation();
+  }, []);
 
   const updateStep = (stepId: string, status: InstallStep['status'], message?: string) => {
     setInstallSteps(prev => prev.map(step => 
@@ -48,10 +76,19 @@ const Install = () => {
   };
 
   const handleInstall = async () => {
-    if (!config.dbUser || !config.dbPassword) {
+    if (!config.dbUser || !config.dbPassword || !config.adminEmail || !config.adminPassword) {
       toast({
         title: "Campos obrigatórios",
-        description: "Usuário e senha do banco são obrigatórios",
+        description: "Todos os campos são obrigatórios",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (config.adminPassword.length < 6) {
+      toast({
+        title: "Senha muito fraca",
+        description: "A senha do administrador deve ter pelo menos 6 caracteres",
         variant: "destructive"
       });
       return;
@@ -122,9 +159,23 @@ const Install = () => {
       const result = await structureResponse.json();
       updateStep('structure', 'success', `Estrutura criada - ${result.summary}`);
 
+      // Step 5: Create admin user
+      updateStep('admin', 'running');
+      const adminResponse = await fetch('/api/install/create-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+
+      if (!adminResponse.ok) {
+        updateStep('admin', 'error', 'Erro ao criar administrador');
+        throw new Error('Falha ao criar usuário administrador');
+      }
+      updateStep('admin', 'success', 'Administrador criado');
+
       toast({
         title: "Instalação concluída!",
-        description: "Sistema instalado com sucesso. Recarregue a página.",
+        description: "Sistema instalado com sucesso. Redirecionando...",
       });
 
       // Redirect after success
@@ -157,6 +208,50 @@ const Install = () => {
     }
   };
 
+  if (checkingInstallation) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Verificando instalação...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isInstalled) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Lock className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <CardTitle className="text-2xl font-bold text-red-700">
+              Sistema já Instalado
+            </CardTitle>
+            <CardDescription>
+              O sistema já foi instalado anteriormente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Por segurança, a instalação não pode ser executada novamente.
+                Se precisar reinstalar, entre em contato com o suporte técnico.
+              </AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => window.location.href = '/'}
+              className="w-full"
+            >
+              Ir para o Sistema
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
@@ -170,64 +265,112 @@ const Install = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Configuration Form */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="dbHost">Host do MySQL</Label>
-              <Input
-                id="dbHost"
-                value={config.dbHost}
-                onChange={(e) => setConfig(prev => ({ ...prev, dbHost: e.target.value }))}
-                placeholder="localhost ou IP"
-                disabled={isInstalling}
-              />
-            </div>
+          {/* Database Configuration */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Configuração do Banco de Dados</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dbHost">Host do MySQL</Label>
+                <Input
+                  id="dbHost"
+                  value={config.dbHost}
+                  onChange={(e) => setConfig(prev => ({ ...prev, dbHost: e.target.value }))}
+                  placeholder="localhost ou IP"
+                  disabled={isInstalling}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dbPort">Porta</Label>
-              <Input
-                id="dbPort"
-                value={config.dbPort}
-                onChange={(e) => setConfig(prev => ({ ...prev, dbPort: e.target.value }))}
-                placeholder="3306"
-                disabled={isInstalling}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dbPort">Porta</Label>
+                <Input
+                  id="dbPort"
+                  value={config.dbPort}
+                  onChange={(e) => setConfig(prev => ({ ...prev, dbPort: e.target.value }))}
+                  placeholder="3306"
+                  disabled={isInstalling}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dbName">Nome do Banco</Label>
-              <Input
-                id="dbName"
-                value={config.dbName}
-                onChange={(e) => setConfig(prev => ({ ...prev, dbName: e.target.value }))}
-                placeholder="meter"
-                disabled={isInstalling}
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dbName">Nome do Banco</Label>
+                <Input
+                  id="dbName"
+                  value={config.dbName}
+                  onChange={(e) => setConfig(prev => ({ ...prev, dbName: e.target.value }))}
+                  placeholder="meter"
+                  disabled={isInstalling}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="dbUser">Usuário MySQL</Label>
-              <Input
-                id="dbUser"
-                value={config.dbUser}
-                onChange={(e) => setConfig(prev => ({ ...prev, dbUser: e.target.value }))}
-                placeholder="root ou meter"
-                disabled={isInstalling}
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="dbUser">Usuário MySQL</Label>
+                <Input
+                  id="dbUser"
+                  value={config.dbUser}
+                  onChange={(e) => setConfig(prev => ({ ...prev, dbUser: e.target.value }))}
+                  placeholder="root ou meter"
+                  disabled={isInstalling}
+                  required
+                />
+              </div>
 
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="dbPassword">Senha MySQL</Label>
-              <Input
-                id="dbPassword"
-                type="password"
-                value={config.dbPassword}
-                onChange={(e) => setConfig(prev => ({ ...prev, dbPassword: e.target.value }))}
-                placeholder="Senha do banco MySQL"
-                disabled={isInstalling}
-                required
-              />
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="dbPassword">Senha MySQL</Label>
+                <Input
+                  id="dbPassword"
+                  type="password"
+                  value={config.dbPassword}
+                  onChange={(e) => setConfig(prev => ({ ...prev, dbPassword: e.target.value }))}
+                  placeholder="Senha do banco MySQL"
+                  disabled={isInstalling}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Configuration */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold border-b pb-2">Dados do Administrador</h3>
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="adminName">Nome Completo</Label>
+                <Input
+                  id="adminName"
+                  value={config.adminName}
+                  onChange={(e) => setConfig(prev => ({ ...prev, adminName: e.target.value }))}
+                  placeholder="Nome do administrador"
+                  disabled={isInstalling}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adminEmail">Email</Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={config.adminEmail}
+                  onChange={(e) => setConfig(prev => ({ ...prev, adminEmail: e.target.value }))}
+                  placeholder="admin@medidores.local"
+                  disabled={isInstalling}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="adminPassword">Senha</Label>
+                <Input
+                  id="adminPassword"
+                  type="password"
+                  value={config.adminPassword}
+                  onChange={(e) => setConfig(prev => ({ ...prev, adminPassword: e.target.value }))}
+                  placeholder="Senha do administrador (mín. 6 caracteres)"
+                  disabled={isInstalling}
+                  required
+                  minLength={6}
+                />
+              </div>
             </div>
           </div>
 
@@ -256,7 +399,7 @@ const Install = () => {
           {/* Action Button */}
           <Button 
             onClick={handleInstall}
-            disabled={isInstalling || !config.dbUser || !config.dbPassword}
+            disabled={isInstalling || !config.dbUser || !config.dbPassword || !config.adminEmail || !config.adminPassword}
             className="w-full h-12 text-lg"
           >
             {isInstalling ? (
@@ -274,7 +417,8 @@ const Install = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <strong>Importante:</strong> Certifique-se de que o MySQL está rodando e que o usuário 
-              informado tem privilégios para criar bancos de dados.
+              informado tem privilégios para criar bancos de dados. Após a instalação, esta página 
+              será automaticamente desabilitada por segurança.
             </AlertDescription>
           </Alert>
         </CardContent>

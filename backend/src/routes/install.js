@@ -4,6 +4,7 @@ const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const router = express.Router();
 
 // Generate JWT secret
@@ -42,10 +43,66 @@ SMTP_USER=seu-email@empresa.com
 SMTP_PASSWORD=sua-senha-app-gmail
 SMTP_FROM="Sistema de Medidores <noreply@medidores.com>"
 
+# Sistema instalado (não remover esta linha)
+SYSTEM_INSTALLED=true
+
 # MODO ATUAL: Produção (emails reais via SMTP configurado)
 # Para voltar aos emails fake, mude NODE_ENV para: development
 `;
 }
+
+// Check if system is already installed
+router.get('/check-installation', async (req, res) => {
+  try {
+    // Check if .env exists and has SYSTEM_INSTALLED=true
+    const projectRoot = path.resolve(__dirname, '../../../');
+    const envPath = path.join(projectRoot, '.env');
+    
+    try {
+      const envContent = await fs.readFile(envPath, 'utf8');
+      const isInstalled = envContent.includes('SYSTEM_INSTALLED=true');
+      
+      if (isInstalled) {
+        // Also check if database connection works
+        const envLines = envContent.split('\n');
+        const config = {};
+        
+        envLines.forEach(line => {
+          const [key, value] = line.split('=');
+          if (key && value) {
+            config[key.trim()] = value.trim();
+          }
+        });
+        
+        if (config.DB_HOST && config.DB_USER && config.DB_PASSWORD && config.DB_NAME) {
+          try {
+            const connection = await mysql.createConnection({
+              host: config.DB_HOST,
+              port: parseInt(config.DB_PORT) || 3306,
+              user: config.DB_USER,
+              password: config.DB_PASSWORD,
+              database: config.DB_NAME
+            });
+            
+            await connection.execute('SELECT 1 FROM users LIMIT 1');
+            await connection.end();
+            
+            return res.json({ isInstalled: true });
+          } catch (dbError) {
+            console.log('Database check failed:', dbError.message);
+          }
+        }
+      }
+    } catch (fileError) {
+      console.log('Env file not found or not readable');
+    }
+    
+    res.json({ isInstalled: false });
+  } catch (error) {
+    console.error('Installation check error:', error);
+    res.json({ isInstalled: false });
+  }
+});
 
 // Test database connection
 router.post('/test-connection', async (req, res) => {
@@ -163,6 +220,57 @@ router.post('/create-structure', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: `Erro ao criar estrutura: ${error.message}` 
+    });
+  }
+});
+
+// Create admin user
+router.post('/create-admin', async (req, res) => {
+  try {
+    const { dbHost, dbPort, dbUser, dbPassword, dbName, adminName, adminEmail, adminPassword } = req.body;
+
+    const connection = await mysql.createConnection({
+      host: dbHost,
+      port: parseInt(dbPort),
+      user: dbUser,
+      password: dbPassword,
+      database: dbName
+    });
+
+    // Hash the admin password
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    // Check if admin already exists
+    const [existingAdmin] = await connection.execute(
+      'SELECT id FROM users WHERE email = ? OR role = "admin"',
+      [adminEmail]
+    );
+
+    if (existingAdmin.length > 0) {
+      // Update existing admin
+      await connection.execute(
+        'UPDATE users SET name = ?, email = ?, password = ?, role = "admin" WHERE id = ?',
+        [adminName, adminEmail, hashedPassword, existingAdmin[0].id]
+      );
+    } else {
+      // Create new admin
+      await connection.execute(
+        'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES (?, ?, ?, "admin", NOW(), NOW())',
+        [adminName, adminEmail, hashedPassword]
+      );
+    }
+
+    await connection.end();
+
+    res.json({ 
+      success: true, 
+      message: 'Usuário administrador criado com sucesso' 
+    });
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Erro ao criar administrador: ${error.message}` 
     });
   }
 });
