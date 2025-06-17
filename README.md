@@ -19,55 +19,101 @@ Sistema completo para gerenciamento de medidores de água e energia em edifício
 - **UI Components**: Shadcn/UI + Tailwind CSS
 - **Backend**: Node.js + Express
 - **Banco de Dados**: MySQL 8.0+
-- **Instalador**: Interface web interativa
+- **Deploy**: Docker Compose
 
 ## 📦 Instalação
 
 ### Pré-requisitos
-- **Node.js 18+**
-- **MySQL 8.0+** (com usuário configurado)
+- **Docker + Docker Compose**
+- **MySQL 8.0+** (servidor externo configurado)
 - **Git**
 
-### 1. Clonar e Configurar
+### 1. Preparar Banco de Dados Externo
+
+Primeiro, configure o MySQL no seu servidor:
+
+```sql
+-- Conectar como root no MySQL
+mysql -u root -p
+
+-- Criar usuário para o sistema
+CREATE USER 'meter'@'%' IDENTIFIED BY 'SuaSenhaSegura123';
+
+-- Dar permissões completas
+GRANT ALL PRIVILEGES ON *.* TO 'meter'@'%';
+
+-- Aplicar mudanças
+FLUSH PRIVILEGES;
+
+-- Criar banco de dados
+CREATE DATABASE meter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Verificar criação
+SHOW DATABASES;
+SELECT User, Host FROM mysql.user WHERE User = 'meter';
+
+-- Testar conexão (opcional)
+mysql -h SEU_IP_MYSQL -u meter -p meter
+```
+
+### 2. Clonar e Configurar Projeto
+
 ```bash
 # Clonar repositório
 git clone [SEU_REPOSITORIO]
 cd sistema-medidores
 
-# Instalar dependências
-npm install
+# OU copiar arquivos para pasta do Docker
+# cp -r sistema-medidores/* /sua/pasta/docker/
 ```
 
-### 2. Instalação via Interface Web (Recomendada)
+### 3. Instalação via Interface Web (Docker Compose)
+
 ```bash
-# Iniciar servidor de desenvolvimento
-npm run dev
+# Iniciar com Docker Compose
+docker-compose up -d
+
+# Aguardar containers iniciarem (30-60 segundos)
+docker-compose ps
 
 # Acessar instalador web
 http://localhost:3000/install
 ```
 
 **No instalador web você irá configurar:**
-- 🔗 **Conexão MySQL**: Host, porta, usuário e senha
-- 🗄️ **Banco de Dados**: Nome do banco (será criado automaticamente)
+- 🔗 **Conexão MySQL**: Host (IP do servidor), porta 3306, usuário `meter`
+- 🗄️ **Banco de Dados**: Nome `meter` (já criado)
 - 👤 **Administrador**: Nome, email e senha do primeiro usuário
 
-### 3. Instalação via Linha de Comando (Alternativa)
-```bash
-# Executar instalador automático
-./quick-install.sh
+### 4. Comandos Docker Compose
 
-# OU instalação manual
-node install.js
+```bash
+# Iniciar sistema completo
+docker-compose up -d
+
+# Ver logs em tempo real
+docker-compose logs -f
+
+# Parar sistema
+docker-compose down
+
+# Reiniciar sistema
+docker-compose restart
+
+# Ver status dos containers
+docker-compose ps
+
+# Limpar containers e volumes
+docker-compose down -v
 ```
 
 ## 🎯 Instalador Web
 
 O sistema possui um **instalador web completo** que:
 
-✅ **Testa a conexão** com o banco MySQL  
+✅ **Testa a conexão** com o banco MySQL externo  
 ✅ **Cria o arquivo .env** com configurações seguras  
-✅ **Cria o banco de dados** automaticamente  
+✅ **Conecta no banco** externo configurado  
 ✅ **Instala todas as tabelas** e estrutura  
 ✅ **Insere dados iniciais** para demonstração  
 ✅ **Configura o usuário administrador**  
@@ -76,7 +122,7 @@ O sistema possui um **instalador web completo** que:
 ### Como usar o instalador:
 
 1. **Acesse**: `http://localhost:3000/install`
-2. **Configure o MySQL**: Informe host, porta, usuário e senha
+2. **Configure o MySQL**: Informe IP do servidor, porta 3306, usuário `meter`, senha
 3. **Defina o administrador**: Nome, email e senha
 4. **Inicie a instalação**: Clique em "🚀 Iniciar Instalação"
 5. **Acompanhe o progresso**: Veja cada etapa sendo executada
@@ -106,16 +152,55 @@ Após a instalação via web:
 
 Para reinstalar o sistema:
 
-1. **Parar o servidor** se estiver rodando
-2. **Remover o arquivo .env**
-3. **Reiniciar o servidor**
-4. **Acessar novamente** `/install`
-
+1. **Parar containers**
 ```bash
-# Comandos para reinstalação
+docker-compose down
+```
+
+2. **Remover arquivo .env**
+```bash
 rm .env
-npm run dev
-# Acesse http://localhost:3000/install
+```
+
+3. **Reiniciar containers**
+```bash
+docker-compose up -d
+```
+
+4. **Acessar novamente** `/install`
+```
+http://localhost:3000/install
+```
+
+## 🐳 Configuração Docker
+
+### Estrutura dos Containers
+
+```yaml
+# docker-compose.yml
+services:
+  frontend:    # React App (porta 3000)
+  backend:     # Node.js API (porta 3001)
+  # MySQL externo (não no Docker)
+```
+
+### Variáveis de Ambiente
+
+O instalador web cria automaticamente o arquivo `.env`:
+
+```env
+# Banco de dados externo
+DB_HOST=192.168.1.100
+DB_PORT=3306
+DB_NAME=meter
+DB_USER=meter
+DB_PASSWORD=SuaSenhaSegura123
+
+# Segurança
+JWT_SECRET=chave_gerada_automaticamente_64_chars
+
+# APIs
+VITE_API_BASE_URL=http://localhost:3001
 ```
 
 ## 🛠️ Desenvolvimento
@@ -145,29 +230,19 @@ src/
 backend/                # Backend Node.js
 ├── src/routes/
 │   └── install.js      # API do instalador
+docker-compose.yml      # Configuração Docker
 install/                # Scripts de instalação
 ├── init.sql           # Script do banco
 ├── INSTALLER.md       # Documentação do instalador
 └── README.md          # Guias de instalação
 ```
 
-## 🐳 Docker (Opcional)
-
-Para usar com Docker:
-
-```bash
-./docker-dev.sh up       # Iniciar sistema
-./docker-dev.sh down     # Parar sistema
-./docker-dev.sh logs     # Ver logs
-./docker-dev.sh status   # Status dos containers
-```
-
 ## 📋 Comandos Administrativos
 
 ### Resetar Senha do Admin (Emergência)
 ```sql
--- Conectar ao MySQL
-mysql -u root -p
+-- Conectar ao MySQL externo
+mysql -h SEU_IP_MYSQL -u meter -p
 
 -- Usar banco de dados
 USE meter;
@@ -195,6 +270,11 @@ Para ambiente de produção:
 4. Monitore logs e performance
 5. Desabilite instalador em produção
 
+```bash
+# Production com Docker Compose
+docker-compose -f docker-compose.prod.yml up -d
+```
+
 ## ✨ Funcionalidades Principais
 
 ### Para Administradores
@@ -211,6 +291,30 @@ Para ambiente de produção:
 - Gerar relatórios da unidade
 - Acompanhar tendências
 
+## 🐛 Solução de Problemas
+
+### Container não inicia
+```bash
+docker-compose logs frontend
+docker-compose logs backend
+```
+
+### Erro de conexão MySQL
+```bash
+# Testar conexão do container
+docker-compose exec backend ping SEU_IP_MYSQL
+
+# Verificar firewall MySQL
+# Porta 3306 deve estar aberta para o IP do Docker
+```
+
+### Reinstalação completa
+```bash
+docker-compose down -v
+rm .env
+docker-compose up -d
+```
+
 ## 📄 Licença
 
 Este projeto está sob a licença MIT.
@@ -219,4 +323,4 @@ Este projeto está sob a licença MIT.
 
 **Desenvolvido para facilitar o gerenciamento de medidores em condomínios e edifícios comerciais.**
 
-**🌟 Instalação simplificada com interface web moderna!**
+**🌟 Instalação simplificada com Docker Compose e interface web moderna!**
