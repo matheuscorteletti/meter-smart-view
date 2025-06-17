@@ -9,6 +9,7 @@ interface AuthContextType {
   logout: () => void;
   switchProfile: (newRole: 'admin' | 'user' | 'viewer') => void;
   isLoading: boolean;
+  isAdminSwitched: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,11 +45,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loginAttempts, setLoginAttempts] = useState<{ [email: string]: { count: number; lastAttempt: number } }>({});
+  const [originalAdminUser, setOriginalAdminUser] = useState<User | null>(null);
 
   useEffect(() => {
     initializeSampleData();
     const savedUser = getUser();
     setUser(savedUser);
+    
+    // Se o usuário salvo é admin, salvar como original
+    if (savedUser?.role === 'admin') {
+      setOriginalAdminUser(savedUser);
+    }
+    
     setIsLoading(false);
   }, []);
 
@@ -138,10 +146,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchProfile = (newRole: 'admin' | 'user' | 'viewer') => {
-    if (!user || user.role !== 'admin') return;
+    if (!user) return;
+    
+    // Se não temos o admin original salvo e o usuário atual é admin, salvar
+    if (!originalAdminUser && user.role === 'admin') {
+      setOriginalAdminUser(user);
+    }
+    
+    // Se está tentando voltar para admin e temos o admin original, usar ele
+    if (newRole === 'admin' && originalAdminUser) {
+      setUser(originalAdminUser);
+      saveUser(originalAdminUser);
+      return;
+    }
+    
+    // Só permitir troca se for admin original ou admin atual
+    if (user.role !== 'admin' && !originalAdminUser) return;
     
     const profileData = {
-      admin: {
+      admin: originalAdminUser || {
         id: 'admin-1',
         name: 'Administrador',
         email: 'admin@demo.com',
@@ -170,11 +193,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    setOriginalAdminUser(null);
     removeUser();
   };
 
+  const isAdminSwitched = originalAdminUser !== null && user?.role !== 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, switchProfile, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      switchProfile, 
+      isLoading, 
+      isAdminSwitched 
+    }}>
       {children}
     </AuthContext.Provider>
   );

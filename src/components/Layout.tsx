@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,14 +9,14 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
-import { Building2, LogOut, User, Shield, Eye, UserCheck } from 'lucide-react';
+import { Building2, LogOut, User, Shield, Eye, UserCheck, RotateCcw } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout, switchProfile } = useAuth();
+  const { user, logout, switchProfile, isAdminSwitched } = useAuth();
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -59,11 +58,28 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <h1 className="text-xl font-bold text-gray-900">Sistema de Medidores</h1>
                 <p className="text-sm text-gray-600">
                   {getRoleLabel(user?.role || 'user')}
+                  {isAdminSwitched && (
+                    <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                      Admin simulando
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center space-x-4">
+              {isAdminSwitched && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => switchProfile('admin')}
+                  className="flex items-center space-x-2 text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Voltar Admin</span>
+                </Button>
+              )}
+
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                 <p className="text-xs text-gray-600">
@@ -90,35 +106,51 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </Avatar>
                     <div>
                       <p className="font-medium">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{getRoleLabel(user?.role || 'user')}</p>
+                      <p className="text-xs text-gray-500">
+                        {getRoleLabel(user?.role || 'user')}
+                        {isAdminSwitched && <span className="text-orange-600"> (Admin)</span>}
+                      </p>
                     </div>
                   </DropdownMenuItem>
                   
-                  {user?.role === 'admin' && (
+                  {(user?.role === 'admin' || isAdminSwitched) && (
                     <>
                       <DropdownMenuSeparator />
+                      {isAdminSwitched && (
+                        <DropdownMenuItem 
+                          onClick={() => switchProfile('admin')}
+                          className="flex items-center space-x-2 text-red-600"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          <span>Voltar para Admin</span>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem 
                         onClick={() => switchProfile('admin')}
                         className="flex items-center space-x-2"
-                        disabled={user.role === 'admin'}
+                        disabled={user?.role === 'admin' && !isAdminSwitched}
                       >
                         <Shield className="w-4 h-4 text-red-600" />
                         <span>Admin</span>
-                        {user.role === 'admin' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
+                        {user?.role === 'admin' && !isAdminSwitched && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => switchProfile('user')}
                         className="flex items-center space-x-2"
+                        disabled={user?.role === 'user' && !isAdminSwitched}
                       >
                         <User className="w-4 h-4 text-blue-600" />
                         <span>Usuário</span>
+                        {user?.role === 'user' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => switchProfile('viewer')}
                         className="flex items-center space-x-2"
+                        disabled={user?.role === 'viewer' && !isAdminSwitched}
                       >
                         <Eye className="w-4 h-4 text-purple-600" />
                         <span>Visualizador</span>
+                        {user?.role === 'viewer' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
                       </DropdownMenuItem>
                     </>
                   )}
