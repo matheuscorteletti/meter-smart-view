@@ -30,7 +30,7 @@ Sistema completo para gerenciamento de medidores de água e energia em edifício
 ### 1. Configurar Banco de Dados
 ```bash
 # Execute o script de instalação no MySQL
-mysql -h 192.168.100.240 -u root -p < install/init.sql
+mysql -u root -p < /home/wise/init.sql
 ```
 
 ### 2. Iniciar Sistema

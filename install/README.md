@@ -56,14 +56,14 @@ sudo reboot
 **IMPORTANTE**: Execute este script **ANTES** de iniciar a aplicação Docker.
 
 ```bash
-# Conectar ao MySQL (substitua pela senha real)
-mysql -h 192.168.100.240 -u meter -p
+# Conectar ao MySQL
+mysql -u root -p
 
 # Executar o script de instalação
-source /caminho/para/install/init.sql;
+source /home/wise/init.sql;
 
 # Ou via linha de comando:
-mysql -h 192.168.100.240 -u meter -p < install/init.sql
+mysql -u root -p < /home/wise/init.sql
 ```
 
 ### 2. Verificar a Instalação
@@ -231,10 +231,10 @@ VITE_API_BASE_URL=http://localhost:3001/api
 ### Backup do Banco
 ```bash
 # Fazer backup completo
-mysqldump -h 192.168.100.240 -u meter -p meter > backup_medidores_$(date +%Y%m%d).sql
+mysqldump -u root -p meter > backup_medidores_$(date +%Y%m%d).sql
 
 # Restaurar backup
-mysql -h 192.168.100.240 -u meter -p meter < backup_medidores_20241217.sql
+mysql -u root -p meter < backup_medidores_20241217.sql
 ```
 
 ### Gerenciar Usuários Admin
@@ -294,10 +294,10 @@ SELECT COUNT(*) as alertas_ativos FROM readings WHERE is_alert = TRUE;
 #### 2. Erro de conexão com banco
 ```bash
 # Testar conexão com MySQL
-mysql -h 192.168.100.240 -u meter -p meter
+mysql -u root -p meter
 
 # Verificar se o banco foi criado
-mysql -h 192.168.100.240 -u meter -p -e "SHOW DATABASES LIKE 'meter';"
+mysql -u root -p -e "SHOW DATABASES LIKE 'meter';"
 ```
 
 #### 3. Permissões Docker
@@ -326,7 +326,7 @@ sudo kill -9 [PID]
 
 - [ ] MySQL Server configurado em 192.168.100.240
 - [ ] Usuário `meter` existente com privilégios
-- [ ] Script `install/init.sql` executado com sucesso
+- [ ] Script `/home/wise/init.sql` executado com sucesso
 - [ ] Comandos de verificação executados e OK
 - [ ] Docker e Docker Compose instalados
 - [ ] Repositório clonado
