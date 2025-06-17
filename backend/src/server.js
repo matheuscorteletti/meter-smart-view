@@ -5,7 +5,6 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
-const installRoutes = require('./routes/install');
 const buildingRoutes = require('./routes/buildings');
 const unitRoutes = require('./routes/units');
 const meterRoutes = require('./routes/meters');
@@ -35,7 +34,6 @@ app.use(express.urlencoded({ extended: true }));
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/install', installRoutes);
 app.use('/api/buildings', buildingRoutes);
 app.use('/api/units', unitRoutes);
 app.use('/api/meters', meterRoutes);
