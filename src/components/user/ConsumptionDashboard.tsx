@@ -11,7 +11,7 @@ import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import { TrendingUp, Calendar as CalendarIcon, FileText, Download, BarChart3, PieChart } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Cell, AreaChart, Area, Pie } from 'recharts';
 import { cn } from '@/lib/utils';
 import ReportsDialog from './ReportsDialog';
 
