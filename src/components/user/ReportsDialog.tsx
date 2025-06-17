@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -378,23 +377,24 @@ const ReportsDialog = () => {
 
       drawBarChart(doc, 20, yPos, 80, 50, consumptionByType, 'Consumo por Tipo');
 
-      // Gráfico 2: Distribuição de Alertas
-      const waterAlerts = filteredReadings.filter(r => 
-        r.isAlert && metersData.find(m => m.id === r.meterId)?.type === 'water'
-      ).length;
-      const energyAlerts = filteredReadings.filter(r => 
-        r.isAlert && metersData.find(m => m.id === r.meterId)?.type === 'energy'
-      ).length;
-      const normalReadings = filteredReadings.filter(r => !r.isAlert).length;
+      // Gráfico 2: Alertas por Edifício
+      const alertsByBuilding = buildingsData.map(building => {
+        const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
+        const buildingMeters = metersData.filter(m => 
+          buildingUnits.some(u => u.id === m.unitId)
+        );
+        const buildingAlerts = filteredReadings.filter(r => 
+          r.isAlert && buildingMeters.some(m => m.id === r.meterId)
+        ).length;
+        
+        return {
+          label: building.name.substring(0, 8),
+          value: buildingAlerts
+        };
+      }).filter(item => item.value > 0);
 
-      const alertsData = [
-        { label: 'Alertas Água', value: waterAlerts },
-        { label: 'Alertas Energia', value: energyAlerts },
-        { label: 'Leituras Normais', value: normalReadings }
-      ].filter(item => item.value > 0);
-
-      if (alertsData.length > 0) {
-        drawPieChart(doc, 150, yPos + 25, 25, alertsData, 'Distribuição de Alertas');
+      if (alertsByBuilding.length > 0) {
+        drawPieChart(doc, 150, yPos + 25, 25, alertsByBuilding, 'Alertas por Edifício');
       }
 
       yPos += 80;
@@ -447,33 +447,152 @@ const ReportsDialog = () => {
       }
     }
 
-    // Análise de Alertas
+    // Análise Detalhada de Alertas
     if (reportOptions.includeAlerts && alerts > 0) {
-      checkPageSpace(40);
+      checkPageSpace(60);
       
-      doc.setFontSize(14);
-      doc.text('ANÁLISE DE ALERTAS', 20, yPos);
-      yPos += 15;
+      doc.setFontSize(16);
+      doc.setTextColor(220, 53, 69);
+      doc.text('🚨 ANÁLISE DETALHADA DE ALERTAS', 20, yPos);
+      yPos += 20;
       
       const alertReadings = filteredReadings.filter(r => r.isAlert);
       
-      doc.setFontSize(10);
-      doc.text(`Foram identificados ${alerts} alertas de consumo elevado no período.`, 20, yPos);
-      yPos += 8;
+      // Análise por edifício
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text('ALERTAS POR EDIFÍCIO', 20, yPos);
+      yPos += 10;
       
-      if (alertReadings.length > 0) {
-        const waterAlerts = alertReadings.filter(r => 
-          metersData.find(m => m.id === r.meterId)?.type === 'water'
-        ).length;
-        const energyAlerts = alertReadings.filter(r => 
-          metersData.find(m => m.id === r.meterId)?.type === 'energy'
-        ).length;
+      buildingsData.forEach(building => {
+        const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
+        const buildingMeters = metersData.filter(m => 
+          buildingUnits.some(u => u.id === m.unitId)
+        );
+        const buildingAlerts = alertReadings.filter(r => 
+          buildingMeters.some(m => m.id === r.meterId)
+        );
         
-        doc.text(`• Alertas de Água: ${waterAlerts}`, 25, yPos);
-        yPos += 6;
-        doc.text(`• Alertas de Energia: ${energyAlerts}`, 25, yPos);
-        yPos += 15;
-      }
+        if (buildingAlerts.length > 0) {
+          const waterAlerts = buildingAlerts.filter(r => 
+            metersData.find(m => m.id === r.meterId)?.type === 'water'
+          ).length;
+          const energyAlerts = buildingAlerts.filter(r => 
+            metersData.find(m => m.id === r.meterId)?.type === 'energy'
+          ).length;
+          
+          doc.setFontSize(10);
+          doc.setFillColor(254, 242, 242);
+          doc.rect(20, yPos - 3, 170, 12, 'F');
+          doc.setTextColor(220, 53, 69);
+          doc.text(`${building.name}: ${buildingAlerts.length} alertas`, 25, yPos + 2);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`(${waterAlerts} água, ${energyAlerts} energia)`, 25, yPos + 8);
+          yPos += 18;
+        }
+      });
+      
+      yPos += 10;
+      
+      // TOP 5 Maiores Ofensores
+      checkPageSpace(60);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text('🏆 TOP 5 MAIORES OFENSORES', 20, yPos);
+      yPos += 10;
+      
+      // Calcular consumo por unidade
+      const consumptionByUnit = unitsData.map(unit => {
+        const unitMeters = metersData.filter(m => m.unitId === unit.id);
+        const unitReadings = filteredReadings.filter(r => 
+          unitMeters.some(m => m.id === r.meterId)
+        );
+        const unitAlerts = unitReadings.filter(r => r.isAlert).length;
+        const totalConsumption = unitReadings.reduce((sum, r) => sum + r.consumption, 0);
+        const building = buildingsData.find(b => b.id === unit.buildingId);
+        
+        return {
+          unitNumber: unit.number,
+          buildingName: building?.name || 'N/A',
+          consumption: totalConsumption,
+          alerts: unitAlerts,
+          readings: unitReadings.length
+        };
+      })
+      .filter(item => item.consumption > 0)
+      .sort((a, b) => b.consumption - a.consumption)
+      .slice(0, 5);
+      
+      consumptionByUnit.forEach((unit, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
+        
+        doc.setFillColor(index < 3 ? 255, 248, 220 : 248, 249, 250);
+        doc.rect(20, yPos - 3, 170, 15, 'F');
+        
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`${medal} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Consumo: ${unit.consumption.toLocaleString('pt-BR')} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 9);
+        
+        yPos += 20;
+      });
+      
+      yPos += 10;
+      
+      // Estatísticas de Alertas
+      checkPageSpace(40);
+      doc.setFontSize(12);
+      doc.setTextColor(0, 0, 0);
+      doc.text('📊 ESTATÍSTICAS DE ALERTAS', 20, yPos);
+      yPos += 10;
+      
+      const totalUnitsWithAlerts = new Set(
+        alertReadings.map(r => {
+          const meter = metersData.find(m => m.id === r.meterId);
+          return meter?.unitId;
+        }).filter(Boolean)
+      ).size;
+      
+      const avgAlertsPerUnit = totalUnitsWithAlerts > 0 ? (alerts / totalUnitsWithAlerts).toFixed(1) : '0';
+      const alertRate = totalReadings > 0 ? ((alerts / totalReadings) * 100).toFixed(1) : '0';
+      
+      const alertStats = [
+        `• Unidades com alertas: ${totalUnitsWithAlerts}`,
+        `• Média de alertas por unidade: ${avgAlertsPerUnit}`,
+        `• Taxa de alertas: ${alertRate}% das leituras`,
+        `• Período de maior incidência: ${format(new Date(), 'MMMM/yyyy', { locale: ptBR })}`
+      ];
+      
+      doc.setFontSize(10);
+      alertStats.forEach(stat => {
+        doc.text(stat, 25, yPos);
+        yPos += 8;
+      });
+      
+      yPos += 15;
+      
+      // Recomendações
+      checkPageSpace(40);
+      doc.setFontSize(12);
+      doc.setTextColor(25, 135, 84);
+      doc.text('💡 RECOMENDAÇÕES', 20, yPos);
+      yPos += 10;
+      
+      const recommendations = [
+        '• Realizar auditoria nos maiores consumidores identificados',
+        '• Implementar programa de conscientização sobre consumo sustentável',
+        '• Verificar possíveis vazamentos ou equipamentos defeituosos',
+        '• Estabelecer metas de redução de consumo por edifício',
+        '• Considerar implementação de medidores inteligentes'
+      ];
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      recommendations.forEach(rec => {
+        doc.text(rec, 25, yPos);
+        yPos += 8;
+      });
     }
 
     // Dados Detalhados
@@ -567,7 +686,7 @@ const ReportsDialog = () => {
 
     toast({
       title: "Relatório PDF gerado",
-      description: "O relatório completo com gráficos foi gerado e baixado com sucesso!",
+      description: "O relatório completo com análise detalhada de alertas foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
