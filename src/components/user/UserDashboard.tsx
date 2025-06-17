@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Meter, Reading } from '@/types';
 import { getMeters, getReadings, saveReadings } from '@/lib/storage';
-import { Droplets, Zap, Plus, AlertTriangle, TrendingUp, Calendar, Activity } from 'lucide-react';
+import { Droplets, Zap, Plus, AlertTriangle, TrendingUp, Calendar, Activity, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -129,6 +129,22 @@ const UserDashboard = () => {
         description: `Consumo: ${consumption} ${selectedMeter.type === 'water' ? 'L' : 'kWh'}`,
       });
     }
+  };
+
+  const getPreviousReading = (meter: Meter) => {
+    const meterReadings = readings
+      .filter(r => r.meterId === meter.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return meterReadings.length > 0 ? meterReadings[0].reading : meter.initialReading;
+  };
+
+  const getPreviousReadingDate = (meter: Meter) => {
+    const meterReadings = readings
+      .filter(r => r.meterId === meter.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return meterReadings.length > 0 ? new Date(meterReadings[0].date) : null;
   };
 
   const getCurrentConsumption = (meter: Meter) => {
@@ -386,6 +402,37 @@ const UserDashboard = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
+            {/* Informação da leitura anterior */}
+            {selectedMeter && (
+              <Alert className="bg-gray-50 border-gray-200">
+                <History className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Leitura Anterior:</span>
+                      <span className="text-lg font-mono font-bold">
+                        {getPreviousReading(selectedMeter).toString().padStart(selectedMeter.totalDigits, '0')}
+                      </span>
+                    </div>
+                    {getPreviousReadingDate(selectedMeter) && (
+                      <div className="flex justify-between items-center text-sm text-gray-600">
+                        <span>Data:</span>
+                        <span>
+                          {getPreviousReadingDate(selectedMeter)?.toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Alert className="bg-blue-50 border-blue-200">
               <AlertDescription className="text-blue-700 text-base">
                 <strong>Instruções:</strong> Digite a leitura completa do medidor com exatamente{' '}
