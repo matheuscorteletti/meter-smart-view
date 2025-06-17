@@ -45,4 +45,5 @@ export interface Reading {
   isAlert: boolean;
   meterType?: string;
   unitNumber?: string;
+  launchedBy?: string;
 }

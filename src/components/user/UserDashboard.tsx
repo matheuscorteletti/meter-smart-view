@@ -32,15 +32,12 @@ const UserDashboard = () => {
     const metersData = getMeters();
     const readingsData = getReadings();
 
-    // Filtrar unidades do prédio selecionado
     const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
     
-    // Filtrar medidores das unidades do prédio
     const buildingMeters = metersData.filter(meter => 
       buildingUnits.some(unit => unit.id === meter.unitId) && meter.isActive !== false
     );
 
-    // Adicionar informações da unidade aos medidores
     const metersWithDetails: MeterWithDetails[] = buildingMeters.map(meter => {
       const unit = buildingUnits.find(u => u.id === meter.unitId);
       const latestReading = readingsData
@@ -81,7 +78,6 @@ const UserDashboard = () => {
 
   const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
 
-  // Se não há prédio selecionado, mostrar tela de seleção
   if (!selectedBuildingId) {
     return <BuildingSelector buildings={buildings} onSelectBuilding={handleSelectBuilding} />;
   }
@@ -138,41 +134,33 @@ const UserDashboard = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">Leitura Inicial</p>
-                      <p className="text-lg font-bold">{meter.initialReading.toLocaleString('pt-BR')}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-sm text-gray-600">Limite</p>
-                      <p className="text-lg font-bold">{meter.threshold}</p>
-                    </div>
-                  </div>
-                  
                   {meter.latestReading && (
-                    <div className="border-t pt-4">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="border rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-gray-700">Última Leitura</span>
                         <Badge variant={isAlert ? 'destructive' : 'default'}>
                           {isAlert ? 'Alerta' : 'Normal'}
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                         <div>
                           <p className="text-gray-600">Leitura</p>
-                          <p className="font-semibold">{meter.latestReading.reading.toLocaleString('pt-BR')}</p>
+                          <p className="font-semibold text-lg">{meter.latestReading.reading.toLocaleString('pt-BR')}</p>
                         </div>
                         <div>
                           <p className="text-gray-600">Consumo</p>
-                          <p className="font-semibold flex items-center">
-                            <TrendingUp className="w-3 h-3 mr-1" />
+                          <p className="font-semibold text-lg flex items-center">
+                            <TrendingUp className="w-4 h-4 mr-1" />
                             {meter.latestReading.consumption}
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {new Date(meter.latestReading.date).toLocaleDateString('pt-BR')}
-                      </p>
+                      <div className="text-xs text-gray-500 space-y-1">
+                        <p>{new Date(meter.latestReading.date).toLocaleDateString('pt-BR')} às {new Date(meter.latestReading.date).toLocaleTimeString('pt-BR')}</p>
+                        {meter.latestReading.launchedBy && (
+                          <p>Lançado por: {meter.latestReading.launchedBy}</p>
+                        )}
+                      </div>
                     </div>
                   )}
 

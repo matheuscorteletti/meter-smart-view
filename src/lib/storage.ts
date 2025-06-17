@@ -70,7 +70,7 @@ export const addReading = (reading: Omit<Reading, 'id'>) => {
     id: Date.now().toString()
   };
   readings.push(newReading);
-  localStorage.setItem('readings', JSON.stringify(readings));
+  saveReadings(readings);
 };
 
 // Generate sample data for demonstration

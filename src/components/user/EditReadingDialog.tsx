@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Edit3 } from 'lucide-react';
 import { Meter, Reading } from '@/types';
 import { addReading } from '@/lib/storage';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EditReadingDialogProps {
   meter: Meter;
@@ -14,6 +15,7 @@ interface EditReadingDialogProps {
 }
 
 const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingAdded }) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [reading, setReading] = useState('');
 
@@ -26,7 +28,8 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       return;
     }
 
-    const consumption = Math.max(0, readingValue - meter.initialReading);
+    const lastReading = meter.latestReading?.reading || meter.initialReading;
+    const consumption = Math.max(0, readingValue - lastReading);
     const isAlert = consumption > meter.threshold;
 
     const newReading: Omit<Reading, 'id'> = {
@@ -37,6 +40,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       isAlert,
       meterType: meter.type,
       unitNumber: meter.unitNumber,
+      launchedBy: user?.name || 'Usuário',
     };
 
     addReading(newReading);
@@ -73,9 +77,6 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
               min="0"
               step="0.01"
             />
-            <p className="text-sm text-gray-600 mt-1">
-              Leitura inicial: {meter.initialReading.toLocaleString('pt-BR')}
-            </p>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
