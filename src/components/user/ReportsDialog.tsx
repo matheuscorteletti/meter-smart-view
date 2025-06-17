@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -287,7 +286,7 @@ const ReportsDialog = () => {
     // Informações de Filtros
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('INFORMACOES DO RELATORIO', 20, yPos);
+    doc.text('INFORMAÇÕES DO RELATÓRIO', 20, yPos);
     yPos += 15;
 
     // Caixa de informações
@@ -297,18 +296,18 @@ const ReportsDialog = () => {
     doc.setFontSize(10);
     const periodText = selectedPeriod === 'custom' && startDate && endDate
       ? `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
-      : `Ultimos ${selectedPeriod} dias`;
+      : `Últimos ${selectedPeriod} dias`;
     
     const buildingText = selectedBuilding === 'all' 
-      ? 'Todos os Edificios' 
+      ? 'Todos os Edifícios' 
       : buildingsData.find(b => b.id === selectedBuilding)?.name || 'N/A';
     
     const unitText = selectedUnit === 'all'
       ? 'Todas as Unidades'
       : `Unidade ${unitsData.find(u => u.id === selectedUnit)?.number || 'N/A'}`;
     
-    doc.text(`Periodo: ${periodText}`, 25, yPos + 5);
-    doc.text(`Edificio: ${buildingText}`, 25, yPos + 12);
+    doc.text(`Período: ${periodText}`, 25, yPos + 5);
+    doc.text(`Edifício: ${buildingText}`, 25, yPos + 12);
     doc.text(`Unidade: ${unitText}`, 25, yPos + 19);
     yPos += 40;
 
@@ -332,13 +331,13 @@ const ReportsDialog = () => {
       
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
-      doc.text('METRICA', 22, yPos + 2);
+      doc.text('MÉTRICA', 22, yPos + 2);
       doc.text('VALOR', 107, yPos + 2);
       yPos += 12;
       
       // Dados do resumo com formatação brasileira corrigida
       const summaryData = [
-        ['Consumo Total de Agua', `${totalWater.toFixed(1)}m3 (${(totalWater * 1000).toFixed(0)} litros)`],
+        ['Consumo Total de Água', `${totalWater.toFixed(1)}m³ (${(totalWater * 1000).toFixed(0)} litros)`],
         ['Consumo Total de Energia', `${totalEnergy.toFixed(1)}kWh`],
         ['Total de Alertas', alerts.toString()],
         ['Total de Leituras', totalReadings.toString()],
@@ -366,7 +365,7 @@ const ReportsDialog = () => {
       
       doc.setFontSize(18);
       doc.setTextColor(44, 62, 80);
-      doc.text('ANALISE GRAFICA', 105, yPos, { align: 'center' });
+      doc.text('ANÁLISE GRÁFICA', 105, yPos, { align: 'center' });
       yPos += 20;
 
       // Gráfico Expandido: Consumo por Tipo (maior)
@@ -379,7 +378,7 @@ const ReportsDialog = () => {
         .reduce((sum, r) => sum + r.consumption, 0);
 
       const consumptionByType = [
-        { label: 'Agua (m3)', value: Math.round(waterConsumption) },
+        { label: 'Água (m³)', value: Math.round(waterConsumption) },
         { label: 'Energia (kWh)', value: Math.round(energyConsumption) }
       ];
 
@@ -390,8 +389,8 @@ const ReportsDialog = () => {
       // Análise por Prédio
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
-      doc.text('ANALISE DETALHADA POR PREDIO', 20, yPos);
-      yPos += 15;
+      doc.text('ANÁLISE DETALHADA POR PRÉDIO', 20, yPos);
+      yPos += 20; // Increased spacing
 
       // Garantir que buildingsData seja um array
       const validBuildingsData = Array.isArray(buildingsData) ? buildingsData : [];
@@ -420,8 +419,8 @@ const ReportsDialog = () => {
         // Cabeçalho do prédio
         doc.setFontSize(14);
         doc.setTextColor(52, 73, 94);
-        doc.text(`Predio: ${building.name}`, 20, yPos);
-        yPos += 10;
+        doc.text(`Prédio: ${building.name}`, 20, yPos);
+        yPos += 15; // Increased spacing
 
         // Consumo por tipo neste prédio
         const buildingWaterConsumption = buildingReadings
@@ -433,7 +432,7 @@ const ReportsDialog = () => {
           .reduce((sum, r) => sum + r.consumption, 0);
 
         const buildingConsumptionByType = [
-          { label: 'Agua', value: Math.round(buildingWaterConsumption) },
+          { label: 'Água', value: Math.round(buildingWaterConsumption) },
           { label: 'Energia', value: Math.round(buildingEnergyConsumption) }
         ].filter(item => item.value > 0);
 
@@ -459,7 +458,7 @@ const ReportsDialog = () => {
           drawBarChart(doc, 110, yPos, 80, 40, unitConsumption, 'Consumo por Unidade');
         }
 
-        yPos += 50;
+        yPos += 55; // Increased spacing
 
         // Estatísticas do prédio
         doc.setFontSize(10);
@@ -473,7 +472,7 @@ const ReportsDialog = () => {
         ];
         
         doc.text(buildingStats.join(' | '), 20, yPos);
-        yPos += 20;
+        yPos += 25; // Increased spacing between buildings
       });
 
       // Consumo ao Longo do Tempo (últimos 7 dias)
@@ -498,7 +497,7 @@ const ReportsDialog = () => {
       });
 
       if (timeSeriesData.some(d => d.value > 0)) {
-        drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Ultimos 7 Dias');
+        drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Últimos 7 Dias');
         yPos += 80;
       }
     }
@@ -509,8 +508,8 @@ const ReportsDialog = () => {
       
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
-      doc.text('RELATORIO DE DATAS DAS LEITURAS', 20, yPos);
-      yPos += 20;
+      doc.text('RELATÓRIO DE DATAS DAS LEITURAS', 20, yPos);
+      yPos += 25; // Increased spacing
 
       // Agrupar leituras por data
       const readingsByDate: { [key: string]: any[] } = {};
@@ -552,7 +551,7 @@ const ReportsDialog = () => {
           doc.setFontSize(9);
           doc.setTextColor(100, 100, 100);
           doc.text(`${readings.length} leituras`, 25, yPos + 7);
-          doc.text(`${waterReadings.length} agua`, 70, yPos + 7);
+          doc.text(`${waterReadings.length} água`, 70, yPos + 7);
           doc.text(`${energyReadings.length} energia`, 110, yPos + 7);
           doc.text(`${alertsCount} alertas`, 150, yPos + 7);
           doc.text(`${totalConsumption.toFixed(1)} total`, 25, yPos + 11);
@@ -563,12 +562,12 @@ const ReportsDialog = () => {
 
     // Análise Detalhada de Alertas (se houver alertas)
     if (reportOptions.includeAlerts && alerts > 0) {
-      checkPageSpace(60);
+      checkPageSpace(80); // Increased space check
       
       doc.setFontSize(16);
       doc.setTextColor(220, 53, 69);
-      doc.text('ANALISE DETALHADA DE ALERTAS', 20, yPos);
-      yPos += 20;
+      doc.text('ANÁLISE DETALHADA DE ALERTAS', 20, yPos);
+      yPos += 25; // Increased spacing
       
       const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
       const alertReadings = validFilteredReadings.filter(r => r.isAlert);
@@ -576,8 +575,8 @@ const ReportsDialog = () => {
       // Análise por edifício
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text('ALERTAS POR EDIFICIO', 20, yPos);
-      yPos += 10;
+      doc.text('ALERTAS POR EDIFÍCIO', 20, yPos);
+      yPos += 15; // Increased spacing
       
       buildingsData.forEach(building => {
         const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
@@ -598,23 +597,23 @@ const ReportsDialog = () => {
           
           doc.setFontSize(10);
           doc.setFillColor(254, 242, 242);
-          doc.rect(20, yPos - 3, 170, 12, 'F');
+          doc.rect(20, yPos - 3, 170, 15, 'F'); // Increased height
           doc.setTextColor(220, 53, 69);
           doc.text(`${building.name}: ${buildingAlerts.length} alertas`, 25, yPos + 2);
           doc.setTextColor(100, 100, 100);
-          doc.text(`(${waterAlerts} agua, ${energyAlerts} energia)`, 25, yPos + 8);
-          yPos += 18;
+          doc.text(`(${waterAlerts} água, ${energyAlerts} energia)`, 25, yPos + 8);
+          yPos += 20; // Increased spacing
         }
       });
       
-      yPos += 10;
+      yPos += 15; // Additional spacing
       
       // TOP 5 Maiores Ofensores
-      checkPageSpace(60);
+      checkPageSpace(80); // Increased space check
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text('TOP 5 MAIORES OFENSORES', 20, yPos);
-      yPos += 10;
+      yPos += 15; // Increased spacing
       
       // Calcular consumo por unidade
       const consumptionByUnit = unitsData.map(unit => {
@@ -646,25 +645,25 @@ const ReportsDialog = () => {
         } else {
           doc.setFillColor(248, 249, 250);
         }
-        doc.rect(20, yPos - 3, 170, 15, 'F');
+        doc.rect(20, yPos - 3, 170, 18, 'F'); // Increased height
         
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
         doc.text(`${position} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 9);
+        doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 10);
         
-        yPos += 20;
+        yPos += 23; // Increased spacing
       });
       
-      yPos += 10;
+      yPos += 15; // Additional spacing
       
       // Estatísticas de Alertas
-      checkPageSpace(40);
+      checkPageSpace(60);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text('ESTATISTICAS DE ALERTAS', 20, yPos);
-      yPos += 10;
+      doc.text('ESTATÍSTICAS DE ALERTAS', 20, yPos);
+      yPos += 15; // Increased spacing
       
       const totalUnitsWithAlerts = new Set(
         alertReadings.map(r => {
@@ -678,39 +677,39 @@ const ReportsDialog = () => {
       
       const alertStats = [
         `• Unidades com alertas: ${totalUnitsWithAlerts}`,
-        `• Media de alertas por unidade: ${avgAlertsPerUnit}`,
+        `• Média de alertas por unidade: ${avgAlertsPerUnit}`,
         `• Taxa de alertas: ${alertRate}% das leituras`,
-        `• Periodo de maior incidencia: ${format(new Date(), 'MMMM/yyyy', { locale: ptBR })}`
+        `• Período de maior incidência: ${format(new Date(), 'MMMM/yyyy', { locale: ptBR })}`
       ];
       
       doc.setFontSize(10);
       alertStats.forEach(stat => {
         doc.text(stat, 25, yPos);
-        yPos += 8;
+        yPos += 10; // Increased spacing
       });
       
-      yPos += 15;
+      yPos += 20; // Additional spacing
       
       // Recomendações
-      checkPageSpace(40);
+      checkPageSpace(60);
       doc.setFontSize(12);
       doc.setTextColor(25, 135, 84);
-      doc.text('RECOMENDACOES', 20, yPos);
-      yPos += 10;
+      doc.text('RECOMENDAÇÕES', 20, yPos);
+      yPos += 15; // Increased spacing
       
       const recommendations = [
         '• Realizar auditoria nos maiores consumidores identificados',
-        '• Implementar programa de conscientizacao sobre consumo sustentavel',
-        '• Verificar possiveis vazamentos ou equipamentos defeituosos',
-        '• Estabelecer metas de reducao de consumo por edificio',
-        '• Considerar implementacao de medidores inteligentes'
+        '• Implementar programa de conscientização sobre consumo sustentável',
+        '• Verificar possíveis vazamentos ou equipamentos defeituosos',
+        '• Estabelecer metas de redução de consumo por edifício',
+        '• Considerar implementação de medidores inteligentes'
       ];
       
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
       recommendations.forEach(rec => {
         doc.text(rec, 25, yPos);
-        yPos += 8;
+        yPos += 10; // Increased spacing
       });
     }
 
@@ -729,7 +728,7 @@ const ReportsDialog = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.text('Data', 22, yPos);
-      doc.text('Edificio', 40, yPos);
+      doc.text('Edifício', 40, yPos);
       doc.text('Unidade', 70, yPos);
       doc.text('Tipo', 90, yPos);
       doc.text('Leitura', 110, yPos);
@@ -775,14 +774,14 @@ const ReportsDialog = () => {
         doc.text(format(new Date(reading.date), 'dd/MM/yy'), 22, yPos + 2);
         doc.text(building.name.substring(0, 12), 40, yPos + 2);
         doc.text(unit.number.substring(0, 8), 70, yPos + 2);
-        doc.text(meter.type === 'water' ? 'Agua' : 'Energia', 90, yPos + 2);
+        doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
         doc.text(reading.reading.toFixed(1), 110, yPos + 2);
         const consumptionText = meter.type === 'water' 
-          ? `${reading.consumption.toFixed(1)}m3`  
+          ? `${reading.consumption.toFixed(1)}m³`  
           : `${reading.consumption.toFixed(1)}kWh`;
         doc.text(consumptionText, 130, yPos + 2);
         doc.text(meter.threshold?.toFixed(1) || 'N/A', 150, yPos + 2);
-        doc.text(reading.isAlert ? 'SIM' : 'Nao', 170, yPos + 2);
+        doc.text(reading.isAlert ? 'SIM' : 'Não', 170, yPos + 2);
         
         yPos += 6;
       });
@@ -790,7 +789,7 @@ const ReportsDialog = () => {
       if (validFilteredReadings.length > 25) {
         yPos += 5;
         doc.setFontSize(8);
-        doc.text(`... e mais ${validFilteredReadings.length - 25} leituras nao exibidas`, 20, yPos);
+        doc.text(`... e mais ${validFilteredReadings.length - 25} leituras não exibidas`, 20, yPos);
       }
     }
 
@@ -800,16 +799,16 @@ const ReportsDialog = () => {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`Pagina ${i} de ${totalPages}`, 105, 290, { align: 'center' });
-      doc.text('Sistema de Gestao de Consumo', 20, 290);
+      doc.text(`Página ${i} de ${totalPages}`, 105, 290, { align: 'center' });
+      doc.text('Sistema de Gestão de Consumo', 20, 290);
     }
     
     // Salvar PDF
     doc.save(`relatorio-consumo-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
 
     toast({
-      title: "Relatorio PDF gerado",
-      description: "O relatorio completo com analise detalhada por predio e datas foi gerado e baixado com sucesso!",
+      title: "Relatório PDF gerado",
+      description: "O relatório completo com análise detalhada por prédio e datas foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
