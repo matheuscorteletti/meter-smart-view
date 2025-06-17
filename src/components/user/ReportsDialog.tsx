@@ -526,7 +526,11 @@ const ReportsDialog = () => {
       consumptionByUnit.forEach((unit, index) => {
         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
         
-        doc.setFillColor(index < 3 ? 255, 248, 220 : 248, 249, 250);
+        if (index < 3) {
+          doc.setFillColor(255, 248, 220);
+        } else {
+          doc.setFillColor(248, 249, 250);
+        }
         doc.rect(20, yPos - 3, 170, 15, 'F');
         
         doc.setFontSize(10);
