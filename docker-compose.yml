@@ -38,24 +38,10 @@ services:
       - DB_HOST=192.168.100.240
       - DB_PORT=3306
       - DB_NAME=meter
-      - DB_USER=met
+      - DB_USER=meter
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=seu_jwt_secret_muito_seguro_aqui
       - PORT=3001
-    networks:
-      - meter-network
-
-  # phpMyAdmin para gerenciar o banco externo (opcional)
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: meter-phpmyadmin
-    ports:
-      - "8080:80"
-    environment:
-      PMA_HOST: 192.168.100.240
-      PMA_PORT: 3306
-      PMA_USER: met
-      PMA_PASSWORD: ${DB_PASSWORD}
     networks:
       - meter-network
 

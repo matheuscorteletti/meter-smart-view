@@ -2,8 +2,8 @@
 -- Script de inicialização do banco MySQL
 -- Execute isso quando configurar o banco na sua infraestrutura
 
-CREATE DATABASE IF NOT EXISTS meter_system;
-USE meter_system;
+CREATE DATABASE IF NOT EXISTS meter;
+USE meter;
 
 -- Usuários
 CREATE TABLE users (

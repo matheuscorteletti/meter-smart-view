@@ -24,7 +24,7 @@ git clone [seu-repositorio-url]
 cd [nome-do-projeto]
 
 # 2. Configure a senha do banco
-export DB_PASSWORD=sua_senha_do_met
+export DB_PASSWORD=sua_senha_do_meter
 
 # 3. Torne o script executável (Linux/Mac)
 chmod +x docker-dev.sh
@@ -39,19 +39,15 @@ Após executar `./docker-dev.sh up`:
 
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:3001 (quando implementar)
-- **phpMyAdmin**: http://localhost:8080 (conecta no banco externo)
 
 ### Comandos Úteis
 
 ```bash
 # Definir senha do banco
-export DB_PASSWORD=sua_senha_do_met
+export DB_PASSWORD=sua_senha_do_meter
 
-# Iniciar frontend + phpMyAdmin
+# Iniciar frontend
 ./docker-dev.sh up
-
-# Iniciar apenas phpMyAdmin
-./docker-dev.sh phpmyadmin
 
 # Iniciar apenas frontend
 ./docker-dev.sh frontend-only
@@ -71,7 +67,7 @@ export DB_PASSWORD=sua_senha_do_met
 - **Host**: 192.168.100.240
 - **Porta**: 3306
 - **Database**: meter
-- **Usuário**: met
+- **Usuário**: meter
 - **Senha**: [definir via DB_PASSWORD]
 
 ### Estrutura do Banco
@@ -83,7 +79,7 @@ Execute o script `deployment/init.sql` no seu banco MySQL externo para criar as 
 ### 1. Configurar o Banco
 Execute o script SQL no banco externo:
 ```bash
-mysql -h 192.168.100.240 -u met -p meter < deployment/init.sql
+mysql -h 192.168.100.240 -u meter -p meter < deployment/init.sql
 ```
 
 ### 2. Testar o Frontend
