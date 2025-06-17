@@ -41,12 +41,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'admin' as const,
       },
       'user@demo.com': {
-        id: 'user-1',
+        id: 'user-1013',
         name: 'João Silva',
         email: 'user@demo.com',
         role: 'user' as const,
-        buildingId: 'building-1',
-        unitId: 'unit-1',
+        buildingId: 'building-1013',
+        unitId: 'unit-1013-externo',
       },
     };
 
