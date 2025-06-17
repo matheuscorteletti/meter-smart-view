@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -94,28 +95,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem className="flex items-center space-x-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarFallback className={`bg-gradient-to-r ${getRoleColor(user?.role || 'user')} text-white text-xs`}>
-                        {user?.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{user?.name}</p>
-                      <p className="text-xs text-gray-500">
-                        {getRoleLabel(user?.role || 'user')}
-                      </p>
-                      {isAdminSwitched && (
-                        <p className="text-xs text-orange-600 font-medium">
-                          Admin simulando
+                  <div className="px-2 py-3 border-b">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className={`bg-gradient-to-r ${getRoleColor(user?.role || 'user')} text-white text-xs`}>
+                          {user?.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{user?.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {getRoleLabel(user?.role || 'user')}
                         </p>
-                      )}
+                        {isAdminSwitched && (
+                          <p className="text-xs text-orange-600 font-medium mt-1">
+                            Admin simulando
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </DropdownMenuItem>
+                  </div>
                   
                   {(user?.role === 'admin' || isAdminSwitched) && (
                     <>
-                      <DropdownMenuSeparator />
                       {isAdminSwitched && (
                         <DropdownMenuItem 
                           onClick={() => switchProfile('admin')}
@@ -152,10 +154,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <span>Visualizador</span>
                         {user?.role === 'viewer' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                     </>
                   )}
                   
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={logout}
                     className="flex items-center space-x-2 text-red-600 hover:text-red-700"
@@ -178,3 +180,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 };
 
 export default Layout;
+
