@@ -7,6 +7,7 @@ import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import BuildingManagement from './BuildingManagement';
 import UnitManagement from './UnitManagement';
 import MeterManagement from './MeterManagement';
+import UserManagement from './UserManagement';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
@@ -170,10 +171,11 @@ const AdminDashboard = () => {
 
       {/* Tabs de gerenciamento */}
       <Tabs defaultValue="buildings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="buildings">Edifícios</TabsTrigger>
           <TabsTrigger value="units">Unidades</TabsTrigger>
           <TabsTrigger value="meters">Medidores</TabsTrigger>
+          <TabsTrigger value="users">Usuários</TabsTrigger>
         </TabsList>
 
         <TabsContent value="buildings">
@@ -186,6 +188,10 @@ const AdminDashboard = () => {
 
         <TabsContent value="meters">
           <MeterManagement />
+        </TabsContent>
+
+        <TabsContent value="users">
+          <UserManagement />
         </TabsContent>
       </Tabs>
     </div>
