@@ -350,7 +350,7 @@ const ReportsDialog = () => {
       yPos += 15;
     }
 
-    // Gráficos
+    // Gráficos e Análises por Prédio
     if (reportOptions.includeCharts && filteredReadings.length > 0) {
       // Nova página para gráficos
       doc.addPage();
@@ -361,7 +361,7 @@ const ReportsDialog = () => {
       doc.text('ANÁLISE GRÁFICA', 105, yPos, { align: 'center' });
       yPos += 20;
 
-      // Gráfico 1: Consumo por Tipo
+      // Gráfico Expandido: Consumo por Tipo (maior)
       const waterConsumption = filteredReadings
         .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
         .reduce((sum, r) => sum + r.consumption, 0);
@@ -375,31 +375,90 @@ const ReportsDialog = () => {
         { label: 'Energia (kWh)', value: Math.round(energyConsumption) }
       ];
 
-      drawBarChart(doc, 20, yPos, 80, 50, consumptionByType, 'Consumo por Tipo');
+      // Gráfico maior de consumo por tipo
+      drawBarChart(doc, 20, yPos, 170, 80, consumptionByType, 'CONSUMO TOTAL POR TIPO DE MEDIDOR');
+      yPos += 100;
 
-      // Gráfico 2: Alertas por Edifício
-      const alertsByBuilding = buildingsData.map(building => {
+      // Análise por Prédio
+      doc.setFontSize(16);
+      doc.setTextColor(44, 62, 80);
+      doc.text('ANÁLISE DETALHADA POR PRÉDIO', 20, yPos);
+      yPos += 15;
+
+      buildingsData.forEach((building, buildingIndex) => {
         const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
         const buildingMeters = metersData.filter(m => 
           buildingUnits.some(u => u.id === m.unitId)
         );
-        const buildingAlerts = filteredReadings.filter(r => 
-          r.isAlert && buildingMeters.some(m => m.id === r.meterId)
-        ).length;
+        const buildingReadings = filteredReadings.filter(r => 
+          buildingMeters.some(m => m.id === r.meterId)
+        );
+
+        if (buildingReadings.length === 0) return;
+
+        checkPageSpace(120);
+
+        // Cabeçalho do prédio
+        doc.setFontSize(14);
+        doc.setTextColor(52, 73, 94);
+        doc.text(`🏢 ${building.name}`, 20, yPos);
+        yPos += 10;
+
+        // Consumo por tipo neste prédio
+        const buildingWaterConsumption = buildingReadings
+          .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
+          .reduce((sum, r) => sum + r.consumption, 0);
         
-        return {
-          label: building.name.substring(0, 8),
-          value: buildingAlerts
-        };
-      }).filter(item => item.value > 0);
+        const buildingEnergyConsumption = buildingReadings
+          .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energy')
+          .reduce((sum, r) => sum + r.consumption, 0);
 
-      if (alertsByBuilding.length > 0) {
-        drawPieChart(doc, 150, yPos + 25, 25, alertsByBuilding, 'Alertas por Edifício');
-      }
+        const buildingConsumptionByType = [
+          { label: 'Água', value: Math.round(buildingWaterConsumption) },
+          { label: 'Energia', value: Math.round(buildingEnergyConsumption) }
+        ].filter(item => item.value > 0);
 
-      yPos += 80;
+        if (buildingConsumptionByType.length > 0) {
+          drawBarChart(doc, 20, yPos, 80, 40, buildingConsumptionByType, 'Consumo por Tipo');
+        }
 
-      // Gráfico 3: Consumo ao Longo do Tempo (últimos 7 dias)
+        // Consumo por unidade neste prédio
+        const unitConsumption = buildingUnits.map(unit => {
+          const unitMeters = metersData.filter(m => m.unitId === unit.id);
+          const unitReadings = buildingReadings.filter(r => 
+            unitMeters.some(m => m.id === r.meterId)
+          );
+          const totalConsumption = unitReadings.reduce((sum, r) => sum + r.consumption, 0);
+          
+          return {
+            label: `Unid ${unit.number.substring(0, 6)}`,
+            value: Math.round(totalConsumption)
+          };
+        }).filter(item => item.value > 0).slice(0, 8); // Máximo 8 unidades por gráfico
+
+        if (unitConsumption.length > 0) {
+          drawBarChart(doc, 110, yPos, 80, 40, unitConsumption, 'Consumo por Unidade');
+        }
+
+        yPos += 50;
+
+        // Estatísticas do prédio
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        const buildingAlerts = buildingReadings.filter(r => r.isAlert).length;
+        const buildingStats = [
+          `Unidades: ${buildingUnits.length}`,
+          `Leituras: ${buildingReadings.length}`,
+          `Alertas: ${buildingAlerts}`,
+          `Consumo Total: ${Math.round(buildingWaterConsumption + buildingEnergyConsumption)}`
+        ];
+        
+        doc.text(buildingStats.join(' | '), 20, yPos);
+        yPos += 20;
+      });
+
+      // Consumo ao Longo do Tempo (últimos 7 dias)
+      checkPageSpace(80);
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
@@ -422,32 +481,64 @@ const ReportsDialog = () => {
         drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Últimos 7 Dias');
         yPos += 80;
       }
-
-      // Gráfico 4: Consumo por Edifício
-      const consumptionByBuilding = buildingsData.map(building => {
-        const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
-        const buildingMeters = metersData.filter(m => 
-          buildingUnits.some(u => u.id === m.unitId)
-        );
-        const buildingReadings = filteredReadings.filter(r => 
-          buildingMeters.some(m => m.id === r.meterId)
-        );
-        const totalConsumption = buildingReadings.reduce((sum, r) => sum + r.consumption, 0);
-        
-        return {
-          label: building.name.substring(0, 8),
-          value: Math.round(totalConsumption)
-        };
-      }).filter(item => item.value > 0);
-
-      if (consumptionByBuilding.length > 0) {
-        checkPageSpace(80);
-        drawBarChart(doc, 20, yPos, 170, 60, consumptionByBuilding, 'Consumo por Edifício');
-        yPos += 80;
-      }
     }
 
-    // Análise Detalhada de Alertas
+    // Relatório de Datas das Leituras
+    if (reportOptions.includeDetails && filteredReadings.length > 0) {
+      checkPageSpace(60);
+      
+      doc.setFontSize(16);
+      doc.setTextColor(44, 62, 80);
+      doc.text('📅 RELATÓRIO DE DATAS DAS LEITURAS', 20, yPos);
+      yPos += 20;
+
+      // Agrupar leituras por data
+      const readingsByDate = {};
+      filteredReadings.forEach(reading => {
+        const dateKey = format(new Date(reading.date), 'dd/MM/yyyy');
+        if (!readingsByDate[dateKey]) {
+          readingsByDate[dateKey] = [];
+        }
+        readingsByDate[dateKey].push(reading);
+      });
+
+      // Mostrar estatísticas por data
+      Object.entries(readingsByDate)
+        .sort(([a], [b]) => new Date(b.split('/').reverse().join('-')).getTime() - new Date(a.split('/').reverse().join('-')).getTime())
+        .slice(0, 15) // Últimas 15 datas
+        .forEach(([date, readings]) => {
+          checkPageSpace(15);
+          
+          const waterReadings = readings.filter(r => 
+            metersData.find(m => m.id === r.meterId)?.type === 'water'
+          );
+          const energyReadings = readings.filter(r => 
+            metersData.find(m => m.id === r.meterId)?.type === 'energy'
+          );
+          const alertsCount = readings.filter(r => r.isAlert).length;
+          const totalConsumption = readings.reduce((sum, r) => sum + r.consumption, 0);
+
+          // Caixa para cada data
+          doc.setFillColor(248, 249, 250);
+          doc.rect(20, yPos - 3, 170, 12, 'F');
+          
+          doc.setFontSize(11);
+          doc.setTextColor(52, 73, 94);
+          doc.text(`📅 ${date}`, 25, yPos + 2);
+          
+          doc.setFontSize(9);
+          doc.setTextColor(100, 100, 100);
+          doc.text(`${readings.length} leituras`, 25, yPos + 7);
+          doc.text(`${waterReadings.length} água`, 70, yPos + 7);
+          doc.text(`${energyReadings.length} energia`, 110, yPos + 7);
+          doc.text(`${alertsCount} alertas`, 150, yPos + 7);
+          doc.text(`${totalConsumption.toFixed(1)} total`, 25, yPos + 11);
+          
+          yPos += 15;
+        });
+    }
+
+    // Análise Detalhada de Alertas (se houver alertas)
     if (reportOptions.includeAlerts && alerts > 0) {
       checkPageSpace(60);
       
@@ -690,7 +781,7 @@ const ReportsDialog = () => {
 
     toast({
       title: "Relatório PDF gerado",
-      description: "O relatório completo com análise detalhada de alertas foi gerado e baixado com sucesso!",
+      description: "O relatório completo com análise detalhada por prédio e datas foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
