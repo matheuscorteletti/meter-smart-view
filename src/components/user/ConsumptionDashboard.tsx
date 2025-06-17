@@ -7,10 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { TrendingUp, Calendar as CalendarIcon, FileText, Download, BarChart3 } from 'lucide-react';
+import { TrendingUp, Calendar as CalendarIcon, Download, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import ReportsDialog from './ReportsDialog';
@@ -157,9 +157,9 @@ const ConsumptionDashboard = () => {
     const csvHeaders = ['Data', 'Água (m³)', 'Água (L)', 'Energia (kWh)'];
     const csvData = consumptionData.map(item => [
       item.date,
-      item.agua.toFixed(3),
-      (item.agua * 1000).toFixed(0),
-      item.energia.toFixed(2)
+      item.agua.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+      (item.agua * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+      item.energia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     ]);
 
     const csvContent = [
@@ -193,11 +193,11 @@ const ConsumptionDashboard = () => {
             <div key={index} className="mt-1">
               {entry.dataKey === 'agua' ? (
                 <>
-                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toFixed(3)} m³`}</p>
-                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toFixed(0)} litros)`}</p>
+                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} m³`}</p>
+                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} litros)`}</p>
                 </>
               ) : (
-                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toFixed(2)} kWh`}</p>
+                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}</p>
               )}
             </div>
           ))}
@@ -314,7 +314,7 @@ const ConsumptionDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de Resumo - Updated with proper units */}
+      {/* Cards de Resumo - Updated with proper Brazilian formatting */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -324,9 +324,9 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryData.totalWater.toFixed(3)}m³</div>
+            <div className="text-2xl font-bold">{summaryData.totalWater.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³</div>
             <p className="text-xs text-muted-foreground">
-              {(summaryData.totalWater * 1000).toFixed(0)} litros | Média: {summaryData.avgWater.toFixed(3)}m³/dia
+              {(summaryData.totalWater * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} litros | Média: {summaryData.avgWater.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³/dia
             </p>
           </CardContent>
         </Card>
@@ -339,8 +339,8 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryData.totalEnergy.toFixed(1)}kWh</div>
-            <p className="text-xs text-muted-foreground">Média: {summaryData.avgEnergy.toFixed(1)}kWh/dia</p>
+            <div className="text-2xl font-bold">{summaryData.totalEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh</div>
+            <p className="text-xs text-muted-foreground">Média: {summaryData.avgEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh/dia</p>
           </CardContent>
         </Card>
 

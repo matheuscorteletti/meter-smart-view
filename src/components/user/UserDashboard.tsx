@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, FileText } from 'lucide-react';
+import { Building2, Droplets, Zap, AlertTriangle, TrendingUp } from 'lucide-react';
 import EditReadingDialog from './EditReadingDialog';
-import ReportsDialog from './ReportsDialog';
 
 interface MeterWithDetails extends Meter {
   unitNumber: string;
@@ -65,7 +65,6 @@ const UserDashboard = () => {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
           <p className="text-gray-600">Monitore seus medidores e registre leituras</p>
         </div>
-        <ReportsDialog />
       </div>
 
       {meters.length > 0 ? (
@@ -114,11 +113,11 @@ const UserDashboard = () => {
                             <TrendingUp className="w-4 h-4 mr-1" />
                             {meter.type === 'water' ? (
                               <div>
-                                <div>{meter.latestReading.consumption.toFixed(3)}m³</div>
-                                <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toFixed(0)}L)</div>
+                                <div>{meter.latestReading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³</div>
+                                <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}L)</div>
                               </div>
                             ) : (
-                              <div>{meter.latestReading.consumption.toFixed(2)}kWh</div>
+                              <div>{meter.latestReading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}kWh</div>
                             )}
                           </div>
                         </div>
