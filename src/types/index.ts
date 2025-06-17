@@ -33,6 +33,7 @@ export interface Meter {
   threshold: number;
   unitNumber?: string;
   buildingName?: string;
+  isActive?: boolean;
 }
 
 export interface Reading {

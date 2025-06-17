@@ -5,16 +5,18 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter } from '@/types';
 import { getBuildings, getUnits, getMeters, saveMeters } from '@/lib/storage';
-import { Zap, Droplets, Plus, AlertTriangle, Building2 } from 'lucide-react';
+import { Zap, Droplets, Plus, AlertTriangle, Building2, Edit, RotateCcw, Power } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface MeterWithDetails extends Meter {
   unitNumber: string;
   buildingId: string;
   buildingName: string;
+  isActive?: boolean;
 }
 
 interface MetersByBuildingType {
@@ -30,6 +32,8 @@ const MeterManagement = () => {
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
   const [metersByBuilding, setMetersByBuilding] = useState<MetersByBuildingType>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingMeter, setEditingMeter] = useState<MeterWithDetails | null>(null);
   const [formData, setFormData] = useState({
     unitId: '',
     type: '',
@@ -40,6 +44,10 @@ const MeterManagement = () => {
   });
 
   useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
     const buildingsData = getBuildings();
     const unitsData = getUnits();
     const metersData = getMeters();
@@ -55,7 +63,8 @@ const MeterManagement = () => {
         ...meter,
         unitNumber: unit?.number || 'N/A',
         buildingId: unit?.buildingId || '',
-        buildingName: building?.name || 'N/A'
+        buildingName: building?.name || 'N/A',
+        isActive: meter.isActive !== false // Default para ativo se não especificado
       };
     });
     
@@ -74,7 +83,7 @@ const MeterManagement = () => {
     }, {} as MetersByBuildingType);
 
     setMetersByBuilding(grouped);
-  }, []);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,38 +96,13 @@ const MeterManagement = () => {
       calculationDigits: parseInt(formData.calculationDigits),
       initialReading: parseInt(formData.initialReading),
       threshold: parseInt(formData.threshold),
+      isActive: true,
     };
 
-    const updatedMeters = [...meters.filter(m => !m.unitNumber && !m.buildingName), newMeter];
-    
-    // Adicionar informações da unidade e edifício
-    const metersWithDetails: MeterWithDetails[] = updatedMeters.map(meter => {
-      const unit = units.find(u => u.id === meter.unitId);
-      const building = buildings.find(b => b.id === unit?.buildingId);
-      return {
-        ...meter,
-        unitNumber: unit?.number || 'N/A',
-        buildingId: unit?.buildingId || '',
-        buildingName: building?.name || 'N/A'
-      };
-    });
-    
-    setMeters(metersWithDetails);
+    const currentMeters = getMeters();
+    const updatedMeters = [...currentMeters, newMeter];
     saveMeters(updatedMeters);
-
-    // Reagrupar medidores por edifício
-    const grouped: MetersByBuildingType = buildings.reduce((acc, building) => {
-      const buildingMeters = metersWithDetails.filter(meter => meter.buildingId === building.id);
-      if (buildingMeters.length > 0) {
-        acc[building.id] = {
-          building,
-          meters: buildingMeters
-        };
-      }
-      return acc;
-    }, {} as MetersByBuildingType);
-
-    setMetersByBuilding(grouped);
+    loadData();
     
     setFormData({
       unitId: '',
@@ -133,6 +117,93 @@ const MeterManagement = () => {
     toast({
       title: "Medidor cadastrado",
       description: "Medidor adicionado com sucesso!",
+    });
+  };
+
+  const handleEdit = (meter: MeterWithDetails) => {
+    setEditingMeter(meter);
+    setFormData({
+      unitId: meter.unitId,
+      type: meter.type,
+      totalDigits: meter.totalDigits.toString(),
+      calculationDigits: meter.calculationDigits.toString(),
+      initialReading: meter.initialReading.toString(),
+      threshold: meter.threshold.toString(),
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingMeter) return;
+
+    const currentMeters = getMeters();
+    const updatedMeters = currentMeters.map(meter =>
+      meter.id === editingMeter.id
+        ? { 
+            ...meter, 
+            unitId: formData.unitId,
+            type: formData.type as 'water' | 'energy',
+            totalDigits: parseInt(formData.totalDigits),
+            calculationDigits: parseInt(formData.calculationDigits),
+            initialReading: parseInt(formData.initialReading),
+            threshold: parseInt(formData.threshold),
+          }
+        : meter
+    );
+
+    saveMeters(updatedMeters);
+    loadData();
+    
+    setFormData({
+      unitId: '',
+      type: '',
+      totalDigits: '',
+      calculationDigits: '',
+      initialReading: '',
+      threshold: '',
+    });
+    setEditingMeter(null);
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Medidor atualizado",
+      description: "Medidor editado com sucesso!",
+    });
+  };
+
+  const handleResetReading = (meter: MeterWithDetails) => {
+    const currentMeters = getMeters();
+    const updatedMeters = currentMeters.map(m =>
+      m.id === meter.id
+        ? { ...m, initialReading: 0 }
+        : m
+    );
+
+    saveMeters(updatedMeters);
+    loadData();
+    
+    toast({
+      title: "Leitura zerada",
+      description: "A leitura do medidor foi zerada com sucesso!",
+    });
+  };
+
+  const handleToggleActive = (meter: MeterWithDetails) => {
+    const currentMeters = getMeters();
+    const updatedMeters = currentMeters.map(m =>
+      m.id === meter.id
+        ? { ...m, isActive: !meter.isActive }
+        : m
+    );
+
+    saveMeters(updatedMeters);
+    loadData();
+    
+    toast({
+      title: meter.isActive ? "Medidor desativado" : "Medidor ativado",
+      description: `Medidor ${meter.isActive ? 'desativado' : 'ativado'} com sucesso!`,
     });
   };
 
@@ -259,6 +330,107 @@ const MeterManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de Edição */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Medidor</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-unit">Unidade</Label>
+                <Select value={formData.unitId} onValueChange={(value) => setFormData({ ...formData, unitId: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma unidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {units.map((unit) => {
+                      const building = buildings.find(b => b.id === unit.buildingId);
+                      return (
+                        <SelectItem key={unit.id} value={unit.id}>
+                          {building?.name} - Unidade {unit.number}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-type">Tipo do Medidor</Label>
+                <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="water">Água</SelectItem>
+                    <SelectItem value="energy">Energia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-totalDigits">Total de Dígitos</Label>
+                  <Input
+                    id="edit-totalDigits"
+                    type="number"
+                    value={formData.totalDigits}
+                    onChange={(e) => setFormData({ ...formData, totalDigits: e.target.value })}
+                    placeholder="Ex: 8"
+                    min="1"
+                    max="12"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-calculationDigits">Dígitos para Cálculo</Label>
+                  <Input
+                    id="edit-calculationDigits"
+                    type="number"
+                    value={formData.calculationDigits}
+                    onChange={(e) => setFormData({ ...formData, calculationDigits: e.target.value })}
+                    placeholder="Ex: 5"
+                    min="1"
+                    max="12"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-initialReading">Leitura Inicial</Label>
+                <Input
+                  id="edit-initialReading"
+                  type="number"
+                  value={formData.initialReading}
+                  onChange={(e) => setFormData({ ...formData, initialReading: e.target.value })}
+                  placeholder="Ex: 12345"
+                  min="0"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-threshold">Limite (Threshold)</Label>
+                <Input
+                  id="edit-threshold"
+                  type="number"
+                  value={formData.threshold}
+                  onChange={(e) => setFormData({ ...formData, threshold: e.target.value })}
+                  placeholder={formData.type === 'water' ? 'Ex: 50 litros' : 'Ex: 300 kWh'}
+                  min="1"
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full">
+                Salvar Alterações
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Medidores agrupados por edifício */}
@@ -279,11 +451,11 @@ const MeterManagement = () => {
                 {data.meters.map((meter) => {
                   const MeterIcon = getMeterIcon(meter.type);
                   return (
-                    <Card key={meter.id} className="hover:shadow-lg transition-shadow">
+                    <Card key={meter.id} className={`hover:shadow-lg transition-shadow ${!meter.isActive ? 'opacity-60 bg-gray-50' : ''}`}>
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 ${getMeterColor(meter.type)} rounded-lg flex items-center justify-center`}>
+                            <div className={`w-10 h-10 ${getMeterColor(meter.type)} rounded-lg flex items-center justify-center ${!meter.isActive ? 'opacity-50' : ''}`}>
                               <MeterIcon className="w-5 h-5 text-white" />
                             </div>
                             <div>
@@ -293,12 +465,76 @@ const MeterManagement = () => {
                               <CardDescription>Unidade {meter.unitNumber}</CardDescription>
                             </div>
                           </div>
-                          <Badge 
-                            variant={meter.type === 'water' ? 'default' : 'secondary'}
-                            className={meter.type === 'water' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}
-                          >
-                            {meter.type === 'water' ? 'Água' : 'Energia'}
-                          </Badge>
+                          <div className="flex items-center space-x-1">
+                            <Badge 
+                              variant={meter.isActive ? (meter.type === 'water' ? 'default' : 'secondary') : 'outline'}
+                              className={meter.isActive ? (meter.type === 'water' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800') : 'bg-gray-100 text-gray-600'}
+                            >
+                              {meter.isActive ? (meter.type === 'water' ? 'Água' : 'Energia') : 'Inativo'}
+                            </Badge>
+                            <div className="flex space-x-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(meter)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-orange-600 hover:text-orange-700"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Zerar Leitura</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja zerar a leitura deste medidor? Esta ação não pode ser desfeita.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleResetReading(meter)}>
+                                      Zerar Leitura
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-8 w-8 p-0 ${meter.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      {meter.isActive ? 'Desativar' : 'Ativar'} Medidor
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Tem certeza que deseja {meter.isActive ? 'desativar' : 'ativar'} este medidor?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleToggleActive(meter)}>
+                                      {meter.isActive ? 'Desativar' : 'Ativar'}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
