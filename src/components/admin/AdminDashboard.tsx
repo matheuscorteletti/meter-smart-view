@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Home, Zap, Droplets, AlertTriangle, TrendingUp, Users, Clock } from 'lucide-react';
+import { Building2, Home, Zap, Droplets, AlertTriangle, TrendingUp, Users, Clock, Database } from 'lucide-react';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import BuildingManagement from './BuildingManagement';
 import UnitManagement from './UnitManagement';
 import MeterManagement from './MeterManagement';
 import UserManagement from './UserManagement';
+import BackupRestore from './BackupRestore';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -258,11 +260,15 @@ const AdminDashboard = () => {
 
       {/* Tabs de gerenciamento */}
       <Tabs defaultValue="buildings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="buildings">Edifícios</TabsTrigger>
           <TabsTrigger value="units">Unidades</TabsTrigger>
           <TabsTrigger value="meters">Medidores</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
+          <TabsTrigger value="backup">
+            <Database className="w-4 h-4 mr-2" />
+            Backup
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="buildings">
@@ -279,6 +285,10 @@ const AdminDashboard = () => {
 
         <TabsContent value="users">
           <UserManagement />
+        </TabsContent>
+
+        <TabsContent value="backup">
+          <BackupRestore />
         </TabsContent>
       </Tabs>
     </div>
