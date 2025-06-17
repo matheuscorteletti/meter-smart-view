@@ -9,13 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter } from '@/types';
 import { getBuildings, getUnits, getMeters, saveMeters } from '@/lib/storage';
-import { Zap, Droplets, Plus, AlertTriangle } from 'lucide-react';
+import { Zap, Droplets, Plus, AlertTriangle, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const MeterManagement = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [meters, setMeters] = useState<Meter[]>([]);
+  const [metersByBuilding, setMetersByBuilding] = useState<{ [key: string]: any[] }>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     unitId: '',
@@ -41,11 +42,26 @@ const MeterManagement = () => {
       return {
         ...meter,
         unitNumber: unit?.number || 'N/A',
+        buildingId: unit?.buildingId || '',
         buildingName: building?.name || 'N/A'
       };
     });
     
     setMeters(metersWithDetails);
+
+    // Agrupar medidores por edifício
+    const grouped = buildingsData.reduce((acc, building) => {
+      const buildingMeters = metersWithDetails.filter(meter => meter.buildingId === building.id);
+      if (buildingMeters.length > 0) {
+        acc[building.id] = {
+          building,
+          meters: buildingMeters
+        };
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+    setMetersByBuilding(grouped);
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,12 +86,27 @@ const MeterManagement = () => {
       return {
         ...meter,
         unitNumber: unit?.number || 'N/A',
+        buildingId: unit?.buildingId || '',
         buildingName: building?.name || 'N/A'
       };
     });
     
     setMeters(metersWithDetails);
     saveMeters(updatedMeters);
+
+    // Reagrupar medidores por edifício
+    const grouped = buildings.reduce((acc, building) => {
+      const buildingMeters = metersWithDetails.filter(meter => meter.buildingId === building.id);
+      if (buildingMeters.length > 0) {
+        acc[building.id] = {
+          building,
+          meters: buildingMeters
+        };
+      }
+      return acc;
+    }, {} as { [key: string]: any });
+
+    setMetersByBuilding(grouped);
     
     setFormData({
       unitId: '',
@@ -218,63 +249,78 @@ const MeterManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {meters.map((meter) => {
-          const MeterIcon = getMeterIcon(meter.type);
-          return (
-            <Card key={meter.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 ${getMeterColor(meter.type)} rounded-lg flex items-center justify-center`}>
-                      <MeterIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg capitalize">
-                        {meter.type === 'water' ? 'Água' : 'Energia'}
-                      </CardTitle>
-                      <CardDescription>Unidade {meter.unitNumber}</CardDescription>
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={meter.type === 'water' ? 'default' : 'secondary'}
-                    className={meter.type === 'water' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}
-                  >
-                    {meter.type === 'water' ? 'Água' : 'Energia'}
-                  </Badge>
+      {/* Medidores agrupados por edifício */}
+      <div className="space-y-8">
+        {Object.entries(metersByBuilding).map(([buildingId, data]) => (
+          <Card key={buildingId} className="border-2">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+              <CardTitle className="flex items-center space-x-3 text-xl">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-white" />
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="text-sm text-gray-600">
-                  <strong>Edifício:</strong> {meter.buildingName}
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Dígitos Total:</span>
-                    <div className="font-semibold">{meter.totalDigits}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">P/ Cálculo:</span>
-                    <div className="font-semibold">{meter.calculationDigits}</div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Leitura Inicial:</span>
-                    <div className="font-semibold">{meter.initialReading.toLocaleString('pt-BR')}</div>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Limite:</span>
-                    <div className="font-semibold flex items-center space-x-1">
-                      <span>{meter.threshold}</span>
-                      {meter.threshold > 100 && <AlertTriangle className="w-3 h-3 text-orange-500" />}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                <span>{data.building.name}</span>
+              </CardTitle>
+              <CardDescription>{data.building.address}</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {data.meters.map((meter) => {
+                  const MeterIcon = getMeterIcon(meter.type);
+                  return (
+                    <Card key={meter.id} className="hover:shadow-lg transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className={`w-10 h-10 ${getMeterColor(meter.type)} rounded-lg flex items-center justify-center`}>
+                              <MeterIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg capitalize">
+                                {meter.type === 'water' ? 'Água' : 'Energia'}
+                              </CardTitle>
+                              <CardDescription>Unidade {meter.unitNumber}</CardDescription>
+                            </div>
+                          </div>
+                          <Badge 
+                            variant={meter.type === 'water' ? 'default' : 'secondary'}
+                            className={meter.type === 'water' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}
+                          >
+                            {meter.type === 'water' ? 'Água' : 'Energia'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Dígitos Total:</span>
+                            <div className="font-semibold">{meter.totalDigits}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">P/ Cálculo:</span>
+                            <div className="font-semibold">{meter.calculationDigits}</div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Leitura Inicial:</span>
+                            <div className="font-semibold">{meter.initialReading.toLocaleString('pt-BR')}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Limite:</span>
+                            <div className="font-semibold flex items-center space-x-1">
+                              <span>{meter.threshold}</span>
+                              {meter.threshold > 100 && <AlertTriangle className="w-3 h-3 text-orange-500" />}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {meters.length === 0 && (
