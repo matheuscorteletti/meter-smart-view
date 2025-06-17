@@ -3,7 +3,7 @@ const express = require('express');
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
 const path = require('path');
-const crypto = require('crypto');
+const crypto = require('crypto'); // Usando o módulo built-in do Node.js
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 

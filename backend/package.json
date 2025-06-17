@@ -9,17 +9,17 @@
     "start": "node src/server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "mysql2": "^3.6.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^6.9.14",
     "cors": "^2.8.5",
     "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5",
-    "joi": "^17.11.0"
+    "express-rate-limit": "^7.4.0",
+    "joi": "^17.13.3"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.1.4"
   }
 }

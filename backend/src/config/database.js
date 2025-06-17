@@ -7,18 +7,17 @@ const dbConfig = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'meter',
-  timezone: '+00:00',
-  acquireTimeout: 60000,
-  timeout: 60000,
-  reconnect: true
+  timezone: '+00:00'
 };
 
-// Pool de conexões
+// Pool de conexões com configurações atualizadas
 const pool = mysql.createPool({
   ...dbConfig,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  acquireTimeout: 60000,
+  timeout: 60000
 });
 
 // Teste de conexão
