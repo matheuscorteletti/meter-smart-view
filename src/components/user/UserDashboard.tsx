@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -188,6 +187,64 @@ const UserDashboard = () => {
         </Alert>
       )}
 
+      {/* Seção de Medidores - Movida para o topo */}
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50">
+          <CardTitle className="flex items-center space-x-3 text-2xl">
+            <Activity className="w-6 h-6 text-blue-600" />
+            <span>Seus Medidores</span>
+          </CardTitle>
+          <CardDescription className="text-lg">Registre as leituras dos seus medidores</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {meters.map((meter) => {
+              const MeterIcon = meter.type === 'water' ? Droplets : Zap;
+              const currentConsumption = getCurrentConsumption(meter);
+              const isOverThreshold = currentConsumption > meter.threshold;
+              
+              return (
+                <div key={meter.id} className="p-5 border-2 rounded-xl hover:shadow-md transition-all duration-200 hover:border-blue-200">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className={`w-14 h-14 ${meter.type === 'water' ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-gradient-to-br from-yellow-500 to-orange-500'} rounded-xl flex items-center justify-center shadow-lg`}>
+                        <MeterIcon className="w-7 h-7 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold capitalize text-gray-900">
+                          {meter.type === 'water' ? 'Água' : 'Energia'}
+                        </h3>
+                        <p className="text-gray-600">
+                          Consumo atual: <span className="font-semibold">{currentConsumption} {meter.type === 'water' ? 'L' : 'kWh'}</span>
+                        </p>
+                        {isOverThreshold && (
+                          <Badge variant="destructive" className="text-sm px-3 py-1 mt-2">
+                            <AlertTriangle className="w-4 h-4 mr-1" />
+                            Acima do limite ({meter.threshold} {meter.type === 'water' ? 'L' : 'kWh'})
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <Button
+                        onClick={() => {
+                          setSelectedMeter(meter);
+                          setIsDialogOpen(true);
+                        }}
+                        className="w-full lg:w-auto bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all duration-200"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Leitura
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Cards de resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
@@ -260,124 +317,65 @@ const UserDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Seção de Medidores */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {/* Seus Medidores */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50">
-            <CardTitle className="flex items-center space-x-3 text-2xl">
-              <Activity className="w-6 h-6 text-blue-600" />
-              <span>Seus Medidores</span>
-            </CardTitle>
-            <CardDescription className="text-lg">Registre as leituras dos seus medidores</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {meters.map((meter) => {
-                const MeterIcon = meter.type === 'water' ? Droplets : Zap;
-                const currentConsumption = getCurrentConsumption(meter);
-                const isOverThreshold = currentConsumption > meter.threshold;
-                
+      {/* Histórico recente */}
+      <Card className="shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
+          <CardTitle className="flex items-center space-x-3 text-2xl">
+            <Calendar className="w-6 h-6 text-green-600" />
+            <span>Leituras Recentes</span>
+          </CardTitle>
+          <CardDescription className="text-lg">Suas últimas 5 leituras registradas</CardDescription>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {readings
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .slice(0, 5)
+              .map((reading) => {
+                const MeterIcon = reading.meterType === 'water' ? Droplets : Zap;
                 return (
-                  <div key={meter.id} className="p-5 border-2 rounded-xl hover:shadow-md transition-all duration-200 hover:border-blue-200">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-14 h-14 ${meter.type === 'water' ? 'bg-gradient-to-br from-blue-500 to-cyan-500' : 'bg-gradient-to-br from-yellow-500 to-orange-500'} rounded-xl flex items-center justify-center shadow-lg`}>
-                          <MeterIcon className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold capitalize text-gray-900">
-                            {meter.type === 'water' ? 'Água' : 'Energia'}
-                          </h3>
-                          <p className="text-gray-600">
-                            Consumo atual: <span className="font-semibold">{currentConsumption} {meter.type === 'water' ? 'L' : 'kWh'}</span>
-                          </p>
-                        </div>
+                  <div key={reading.id} className="flex items-center justify-between p-4 border-2 rounded-xl hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${reading.meterType === 'water' ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                        <MeterIcon className={`w-5 h-5 ${reading.meterType === 'water' ? 'text-blue-600' : 'text-orange-600'}`} />
                       </div>
-                      <Button
-                        onClick={() => {
-                          setSelectedMeter(meter);
-                          setIsDialogOpen(true);
-                        }}
-                        className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 shadow-lg hover:shadow-xl transition-all duration-200"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Leitura
-                      </Button>
+                      <div>
+                        <p className="font-semibold text-lg capitalize text-gray-900">
+                          {reading.meterType === 'water' ? 'Água' : 'Energia'}
+                        </p>
+                        <p className="text-gray-600">
+                          {new Date(reading.date).toLocaleDateString('pt-BR', { 
+                            day: '2-digit', 
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    {isOverThreshold && (
-                      <Badge variant="destructive" className="text-sm px-3 py-1">
-                        <AlertTriangle className="w-4 h-4 mr-1" />
-                        Acima do limite ({meter.threshold} {meter.type === 'water' ? 'L' : 'kWh'})
-                      </Badge>
-                    )}
+                    <div className="text-right">
+                      <p className={`text-xl font-bold ${reading.isAlert ? 'text-red-600' : 'text-gray-900'}`}>
+                        {reading.consumption} {reading.meterType === 'water' ? 'L' : 'kWh'}
+                      </p>
+                      {reading.isAlert && (
+                        <Badge variant="destructive" className="text-xs mt-1">
+                          Alto Consumo
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 );
               })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Histórico recente */}
-        <Card className="shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50">
-            <CardTitle className="flex items-center space-x-3 text-2xl">
-              <Calendar className="w-6 h-6 text-green-600" />
-              <span>Leituras Recentes</span>
-            </CardTitle>
-            <CardDescription className="text-lg">Suas últimas 5 leituras registradas</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {readings
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .slice(0, 5)
-                .map((reading) => {
-                  const MeterIcon = reading.meterType === 'water' ? Droplets : Zap;
-                  return (
-                    <div key={reading.id} className="flex items-center justify-between p-4 border-2 rounded-xl hover:shadow-md transition-all duration-200">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${reading.meterType === 'water' ? 'bg-blue-100' : 'bg-orange-100'}`}>
-                          <MeterIcon className={`w-5 h-5 ${reading.meterType === 'water' ? 'text-blue-600' : 'text-orange-600'}`} />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-lg capitalize text-gray-900">
-                            {reading.meterType === 'water' ? 'Água' : 'Energia'}
-                          </p>
-                          <p className="text-gray-600">
-                            {new Date(reading.date).toLocaleDateString('pt-BR', { 
-                              day: '2-digit', 
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xl font-bold ${reading.isAlert ? 'text-red-600' : 'text-gray-900'}`}>
-                          {reading.consumption} {reading.meterType === 'water' ? 'L' : 'kWh'}
-                        </p>
-                        {reading.isAlert && (
-                          <Badge variant="destructive" className="text-xs mt-1">
-                            Alto Consumo
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              {readings.length === 0 && (
-                <div className="text-center py-8">
-                  <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-xl text-gray-500">Nenhuma leitura registrada ainda</p>
-                  <p className="text-gray-400">Adicione sua primeira leitura usando os botões acima</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {readings.length === 0 && (
+              <div className="text-center py-8">
+                <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-xl text-gray-500">Nenhuma leitura registrada ainda</p>
+                <p className="text-gray-400">Adicione sua primeira leitura usando os botões acima</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Dialog para adicionar leitura */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
