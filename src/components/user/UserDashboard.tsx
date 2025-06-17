@@ -5,62 +5,45 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, ArrowLeft } from 'lucide-react';
-import BuildingSelector from './BuildingSelector';
+import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, FileText } from 'lucide-react';
 import EditReadingDialog from './EditReadingDialog';
+import ReportsDialog from './ReportsDialog';
 
 interface MeterWithDetails extends Meter {
   unitNumber: string;
+  buildingName: string;
   latestReading?: Reading;
 }
 
 const UserDashboard = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const buildingsData = getBuildings();
-    setBuildings(buildingsData);
-  }, []);
-
-  useEffect(() => {
-    if (!selectedBuildingId) return;
-
     const unitsData = getUnits();
     const metersData = getMeters();
     const readingsData = getReadings();
 
-    const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
-    
-    const buildingMeters = metersData.filter(meter => 
-      buildingUnits.some(unit => unit.id === meter.unitId) && meter.isActive !== false
-    );
-
-    const metersWithDetails: MeterWithDetails[] = buildingMeters.map(meter => {
-      const unit = buildingUnits.find(u => u.id === meter.unitId);
-      const latestReading = readingsData
-        .filter(r => r.meterId === meter.id)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-      
-      return {
-        ...meter,
-        unitNumber: unit?.number || 'N/A',
-        latestReading,
-      };
-    });
+    const metersWithDetails: MeterWithDetails[] = metersData
+      .filter(meter => meter.isActive !== false)
+      .map(meter => {
+        const unit = unitsData.find(u => u.id === meter.unitId);
+        const building = buildingsData.find(b => b.id === unit?.buildingId);
+        const latestReading = readingsData
+          .filter(r => r.meterId === meter.id)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        
+        return {
+          ...meter,
+          unitNumber: unit?.number || 'N/A',
+          buildingName: building?.name || 'N/A',
+          latestReading,
+        };
+      });
     
     setMeters(metersWithDetails);
-  }, [selectedBuildingId, refreshTrigger]);
-
-  const handleSelectBuilding = (buildingId: string) => {
-    setSelectedBuildingId(buildingId);
-  };
-
-  const handleBackToSelection = () => {
-    setSelectedBuildingId('');
-  };
+  }, [refreshTrigger]);
 
   const handleReadingAdded = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -76,38 +59,15 @@ const UserDashboard = () => {
       : 'bg-gradient-to-r from-yellow-500 to-orange-500';
   };
 
-  const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
-
-  if (!selectedBuildingId) {
-    return <BuildingSelector buildings={buildings} onSelectBuilding={handleSelectBuilding} />;
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <Button variant="outline" onClick={handleBackToSelection}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
-            <p className="text-gray-600">Monitore seus medidores e consumo</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
+          <p className="text-gray-600">Monitore seus medidores e registre leituras</p>
         </div>
+        <ReportsDialog />
       </div>
-
-      {selectedBuilding && (
-        <Card className="border-2">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-green-50">
-            <CardTitle className="flex items-center space-x-3">
-              <Building2 className="w-6 h-6 text-blue-600" />
-              <span>{selectedBuilding.name}</span>
-            </CardTitle>
-            <CardDescription>{selectedBuilding.address}</CardDescription>
-          </CardHeader>
-        </Card>
-      )}
 
       {meters.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -127,7 +87,9 @@ const UserDashboard = () => {
                         <CardTitle className="text-lg capitalize">
                           {meter.type === 'water' ? 'Água' : 'Energia'}
                         </CardTitle>
-                        <CardDescription>Unidade {meter.unitNumber}</CardDescription>
+                        <CardDescription>
+                          {meter.buildingName} - Unidade {meter.unitNumber}
+                        </CardDescription>
                       </div>
                     </div>
                     {isAlert && <AlertTriangle className="w-5 h-5 text-red-500" />}
@@ -180,7 +142,7 @@ const UserDashboard = () => {
               Nenhum medidor encontrado
             </h3>
             <p className="text-gray-600">
-              Este prédio não possui medidores ativos cadastrados
+              Não há medidores ativos cadastrados no sistema
             </p>
           </CardContent>
         </Card>
