@@ -1,4 +1,5 @@
 
+
 -- ============================================
 -- SISTEMA DE MEDIDORES - SCRIPT DE INSTALAÇÃO
 -- ============================================
@@ -6,8 +7,6 @@
 -- Host: 192.168.100.240
 -- ============================================
 
--- Criar banco de dados
-CREATE DATABASE IF NOT EXISTS meter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE meter;
 
 -- ============================================
@@ -128,29 +127,3 @@ INSERT IGNORE INTO meters (id, unit_id, type, serial_number, brand, model, initi
 ('meter-001', 'unit-001', 'water', 'H2O-001-2024', 'AquaMeter', 'AM-500', 12345.50000, 50.00),
 ('meter-002', 'unit-001', 'energy', 'ELE-001-2024', 'EnergyTech', 'ET-300', 54321.00000, 100.00);
 
--- ============================================
--- VERIFICAÇÃO DA INSTALAÇÃO
--- ============================================
-
--- Mostrar resumo da instalação
-SELECT 'INSTALAÇÃO CONCLUÍDA' as status;
-SELECT 'Usuários cadastrados:' as info, COUNT(*) as total FROM users;
-SELECT 'Edifícios cadastrados:' as info, COUNT(*) as total FROM buildings;
-SELECT 'Unidades cadastradas:' as info, COUNT(*) as total FROM units;
-SELECT 'Medidores cadastrados:' as info, COUNT(*) as total FROM meters;
-
--- ============================================
--- COMANDOS ÚTEIS PARA ADMINISTRAÇÃO
--- ============================================
-
--- Para criar um novo usuário admin:
--- INSERT INTO users (id, name, email, password_hash, role) VALUES 
--- (UUID(), 'Seu Nome', 'seu@email.com', '$2b$10$hash_da_senha', 'admin');
-
--- Para resetar senha do admin (execute separadamente):
--- UPDATE users SET password_hash = '$2b$10$novo_hash_aqui' WHERE email = 'admin@medidores.local';
-
--- Para backup da base:
--- mysqldump -h 192.168.100.240 -u meter -p meter > backup_medidores.sql
-
-COMMIT;
