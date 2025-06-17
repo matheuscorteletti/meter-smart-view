@@ -10,11 +10,6 @@
 CREATE DATABASE IF NOT EXISTS meter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE meter;
 
--- Criar usuário específico para a aplicação
-CREATE USER IF NOT EXISTS 'meter'@'%' IDENTIFIED BY 'MeterSystem2024!';
-GRANT ALL PRIVILEGES ON meter.* TO 'meter'@'%';
-FLUSH PRIVILEGES;
-
 -- ============================================
 -- ESTRUTURA DAS TABELAS
 -- ============================================

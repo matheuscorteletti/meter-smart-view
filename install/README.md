@@ -44,7 +44,7 @@ sudo reboot
 
 ### No servidor MySQL (192.168.100.240):
 - MySQL Server 8.0 ou superior
-- Acesso root ou usuário com privilégios administrativos
+- Usuário `meter` já criado com privilégios no banco
 - Porta 3306 acessível pela rede
 
 ---
@@ -57,16 +57,18 @@ sudo reboot
 
 ```bash
 # Conectar ao MySQL (substitua pela senha real)
-mysql -h 192.168.100.240 -u root -p
+mysql -h 192.168.100.240 -u meter -p
 
 # Executar o script de instalação
 source /caminho/para/install/init.sql;
 
 # Ou via linha de comando:
-mysql -h 192.168.100.240 -u root -p < install/init.sql
+mysql -h 192.168.100.240 -u meter -p < install/init.sql
 ```
 
 ### 2. Verificar a Instalação
+
+Execute estes comandos SQL para confirmar que tudo foi criado corretamente:
 
 ```sql
 -- Conectar ao banco
@@ -75,18 +77,43 @@ USE meter;
 -- Verificar tabelas criadas
 SHOW TABLES;
 
--- Verificar usuário criado
-SELECT User, Host FROM mysql.user WHERE User = 'meter';
+-- Verificar dados iniciais - deve mostrar resumo completo
+SELECT 'INSTALAÇÃO CONCLUÍDA' as status;
+SELECT 'Usuários cadastrados:' as info, COUNT(*) as total FROM users;
+SELECT 'Edifícios cadastrados:' as info, COUNT(*) as total FROM buildings;
+SELECT 'Unidades cadastradas:' as info, COUNT(*) as total FROM units;
+SELECT 'Medidores cadastrados:' as info, COUNT(*) as total FROM meters;
 
--- Verificar dados iniciais
-SELECT * FROM users;
-SELECT * FROM buildings;
+-- Verificar estrutura das tabelas principais
+DESCRIBE users;
+DESCRIBE buildings;
+DESCRIBE meters;
 ```
 
-### 3. O que o script cria:
+### 3. Comandos de Teste Adicionais
+
+```sql
+-- Verificar dados de exemplo inseridos
+SELECT * FROM users WHERE role = 'admin';
+SELECT * FROM buildings;
+SELECT * FROM units;
+SELECT * FROM meters;
+
+-- Testar relacionamentos
+SELECT 
+    b.name as edificio,
+    u.number as unidade,
+    u.floor as andar,
+    m.type as tipo_medidor,
+    m.serial_number as numero_serie
+FROM buildings b
+JOIN units u ON b.id = u.building_id
+JOIN meters m ON u.id = m.unit_id;
+```
+
+### 4. O que o script cria:
 
 - ✅ Banco de dados `meter`
-- ✅ Usuário `meter` com senha `MeterSystem2024!`
 - ✅ Todas as tabelas necessárias
 - ✅ Índices para performance
 - ✅ Dados de exemplo para teste
@@ -199,6 +226,57 @@ VITE_API_BASE_URL=http://localhost:3001/api
 
 ---
 
+## 🛠️ Comandos de Administração MySQL
+
+### Backup do Banco
+```bash
+# Fazer backup completo
+mysqldump -h 192.168.100.240 -u meter -p meter > backup_medidores_$(date +%Y%m%d).sql
+
+# Restaurar backup
+mysql -h 192.168.100.240 -u meter -p meter < backup_medidores_20241217.sql
+```
+
+### Gerenciar Usuários Admin
+```sql
+-- Criar novo usuário administrador
+INSERT INTO users (id, name, email, password_hash, role) VALUES 
+(UUID(), 'Seu Nome', 'seu@email.com', '$2b$10$hash_da_senha', 'admin');
+
+-- Resetar senha do admin (gere o hash da nova senha primeiro)
+UPDATE users SET password_hash = '$2b$10$novo_hash_aqui' 
+WHERE email = 'admin@medidores.local';
+
+-- Listar todos os admins
+SELECT id, name, email, role, created_at FROM users WHERE role = 'admin';
+```
+
+### Monitoramento do Sistema
+```sql
+-- Estatísticas gerais
+SELECT 
+    (SELECT COUNT(*) FROM users) as total_usuarios,
+    (SELECT COUNT(*) FROM buildings) as total_edificios,
+    (SELECT COUNT(*) FROM units) as total_unidades,
+    (SELECT COUNT(*) FROM meters) as total_medidores,
+    (SELECT COUNT(*) FROM readings) as total_leituras;
+
+-- Últimas leituras por tipo
+SELECT 
+    m.type as tipo,
+    COUNT(r.id) as leituras_mes_atual
+FROM meters m
+LEFT JOIN readings r ON m.id = r.meter_id 
+    AND MONTH(r.reading_date) = MONTH(CURRENT_DATE())
+    AND YEAR(r.reading_date) = YEAR(CURRENT_DATE())
+GROUP BY m.type;
+
+-- Alertas ativos
+SELECT COUNT(*) as alertas_ativos FROM readings WHERE is_alert = TRUE;
+```
+
+---
+
 ## 🔍 Troubleshooting
 
 ### Problemas Comuns:
@@ -218,8 +296,8 @@ VITE_API_BASE_URL=http://localhost:3001/api
 # Testar conexão com MySQL
 mysql -h 192.168.100.240 -u meter -p meter
 
-# Verificar se usuário meter existe
-mysql -h 192.168.100.240 -u root -p -e "SELECT User, Host FROM mysql.user WHERE User = 'meter';"
+# Verificar se o banco foi criado
+mysql -h 192.168.100.240 -u meter -p -e "SHOW DATABASES LIKE 'meter';"
 ```
 
 #### 3. Permissões Docker
@@ -247,14 +325,16 @@ sudo kill -9 [PID]
 ## 📋 Checklist de Instalação
 
 - [ ] MySQL Server configurado em 192.168.100.240
+- [ ] Usuário `meter` existente com privilégios
 - [ ] Script `install/init.sql` executado com sucesso
+- [ ] Comandos de verificação executados e OK
 - [ ] Docker e Docker Compose instalados
 - [ ] Repositório clonado
 - [ ] Arquivo `.env` configurado
 - [ ] Script `docker-dev.sh` com permissões de execução
 - [ ] Containers iniciados com `./docker-dev.sh up`
 - [ ] Frontend acessível em http://localhost:3000
-- [ ] Login admin funcionando
+- [ ] Dados de teste visíveis na interface
 
 ---
 
@@ -263,13 +343,14 @@ sudo kill -9 [PID]
 Se encontrar problemas:
 
 1. **Verifique os logs**: `./docker-dev.sh logs`
-2. **Teste conexão MySQL**: Confirme acesso ao banco
+2. **Teste conexão MySQL**: Execute comandos de verificação
 3. **Verifique portas**: Certifique-se que 3000/3001 estão livres
 4. **Reinicie sistema**: `./docker-dev.sh restart`
 
 Para problemas específicos, documente:
 - Mensagem de erro completa
 - Logs dos containers
+- Resultado dos comandos de teste SQL
 - Configuração do `.env`
 - Versão do Docker/Ubuntu
 
@@ -283,9 +364,9 @@ Após instalação bem-sucedida:
 2. **Cadastrar edifícios**: Adicionar seus imóveis
 3. **Registrar medidores**: Cadastrar equipamentos
 4. **Implementar backend**: APIs REST para persistência
-5. **Configurar backups**: Rotina de backup do MySQL
+5. **Configurar backups**: Rotina de backup automático do MySQL
 
 ---
 
 **Sistema desenvolvido para gerenciamento eficiente de medidores**
-*Versão 1.0 - Documentação atualizada em $(date)*
+*Versão 1.0 - Documentação atualizada*
