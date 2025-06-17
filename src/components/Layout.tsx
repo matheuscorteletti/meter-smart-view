@@ -1,6 +1,4 @@
-
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -11,7 +9,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
-import { Building2, LogOut, User, Shield, Eye, UserCheck, RotateCcw } from 'lucide-react';
+import { Building2, LogOut, User, Shield, Eye, UserCheck, RotateCcw, Settings, Lock } from 'lucide-react';
+import ProfileEditDialog from '@/components/user/ProfileEditDialog';
+import ChangePasswordDialog from '@/components/user/ChangePasswordDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +19,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout, switchProfile, isAdminSwitched } = useAuth();
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -116,8 +118,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                   </div>
                   
+                  <DropdownMenuItem 
+                    onClick={() => setIsProfileDialogOpen(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Editar Perfil</span>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem 
+                    onClick={() => setIsPasswordDialogOpen(true)}
+                    className="flex items-center space-x-2"
+                  >
+                    <Lock className="w-4 h-4" />
+                    <span>Alterar Senha</span>
+                  </DropdownMenuItem>
+                  
                   {(user?.role === 'admin' || isAdminSwitched) && (
                     <>
+                      <DropdownMenuSeparator />
                       {isAdminSwitched && (
                         <DropdownMenuItem 
                           onClick={() => switchProfile('admin')}
@@ -175,9 +194,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>
+
+      <ProfileEditDialog 
+        open={isProfileDialogOpen} 
+        onOpenChange={setIsProfileDialogOpen} 
+      />
+      
+      <ChangePasswordDialog 
+        open={isPasswordDialogOpen} 
+        onOpenChange={setIsPasswordDialogOpen} 
+      />
     </div>
   );
 };
 
 export default Layout;
-

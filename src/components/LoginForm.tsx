@@ -7,12 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Building2, Lock, Mail } from 'lucide-react';
+import ForgotPasswordDialog from '@/components/user/ForgotPasswordDialog';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,9 +98,26 @@ const LoginForm = () => {
               >
                 {isLoading ? 'Entrando...' : 'Entrar'}
               </Button>
+              
+              <div className="text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsForgotPasswordOpen(true)}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Esqueci minha senha
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
+        
+        <ForgotPasswordDialog 
+          open={isForgotPasswordOpen} 
+          onOpenChange={setIsForgotPasswordOpen} 
+        />
       </div>
     </div>
   );
