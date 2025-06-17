@@ -268,7 +268,7 @@ const ReportsDialog = () => {
     // Cabeçalho
     doc.setFontSize(22);
     doc.setTextColor(44, 62, 80);
-    doc.text('RELATÓRIO DE CONSUMO', 105, yPos, { align: 'center' });
+    doc.text('RELATORIO DE CONSUMO', 105, yPos, { align: 'center' });
     yPos += 15;
     
     doc.setFontSize(10);
@@ -279,7 +279,7 @@ const ReportsDialog = () => {
     // Informações de Filtros
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('INFORMAÇÕES DO RELATÓRIO', 20, yPos);
+    doc.text('INFORMACOES DO RELATORIO', 20, yPos);
     yPos += 15;
 
     // Caixa de informações
@@ -289,18 +289,18 @@ const ReportsDialog = () => {
     doc.setFontSize(10);
     const periodText = selectedPeriod === 'custom' && startDate && endDate
       ? `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
-      : `Últimos ${selectedPeriod} dias`;
+      : `Ultimos ${selectedPeriod} dias`;
     
     const buildingText = selectedBuilding === 'all' 
-      ? 'Todos os Edifícios' 
+      ? 'Todos os Edificios' 
       : buildingsData.find(b => b.id === selectedBuilding)?.name || 'N/A';
     
     const unitText = selectedUnit === 'all'
       ? 'Todas as Unidades'
       : `Unidade ${unitsData.find(u => u.id === selectedUnit)?.number || 'N/A'}`;
     
-    doc.text(`Período: ${periodText}`, 25, yPos + 5);
-    doc.text(`Edifício: ${buildingText}`, 25, yPos + 12);
+    doc.text(`Periodo: ${periodText}`, 25, yPos + 5);
+    doc.text(`Edificio: ${buildingText}`, 25, yPos + 12);
     doc.text(`Unidade: ${unitText}`, 25, yPos + 19);
     yPos += 40;
 
@@ -324,14 +324,14 @@ const ReportsDialog = () => {
       
       doc.setFontSize(10);
       doc.setTextColor(0, 0, 0);
-      doc.text('MÉTRICA', 22, yPos + 2);
+      doc.text('METRICA', 22, yPos + 2);
       doc.text('VALOR', 107, yPos + 2);
       yPos += 12;
       
       // Dados do resumo com formatação brasileira corrigida
       const summaryData = [
-        ['Consumo Total de Água', `${totalWater.toLocaleString('pt-BR')}m³ (${(totalWater * 1000).toLocaleString('pt-BR')} litros)`],
-        ['Consumo Total de Energia', `${totalEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`],
+        ['Consumo Total de Agua', `${totalWater.toFixed(1)}m3 (${(totalWater * 1000).toFixed(0)} litros)`],
+        ['Consumo Total de Energia', `${totalEnergy.toFixed(1)}kWh`],
         ['Total de Alertas', alerts.toString()],
         ['Total de Leituras', totalReadings.toString()],
         ['Medidores Ativos', activeMeters.toString()]
@@ -358,7 +358,7 @@ const ReportsDialog = () => {
       
       doc.setFontSize(18);
       doc.setTextColor(44, 62, 80);
-      doc.text('ANÁLISE GRÁFICA', 105, yPos, { align: 'center' });
+      doc.text('ANALISE GRAFICA', 105, yPos, { align: 'center' });
       yPos += 20;
 
       // Gráfico Expandido: Consumo por Tipo (maior)
@@ -371,7 +371,7 @@ const ReportsDialog = () => {
         .reduce((sum, r) => sum + r.consumption, 0);
 
       const consumptionByType = [
-        { label: 'Água (m³)', value: Math.round(waterConsumption) },
+        { label: 'Agua (m3)', value: Math.round(waterConsumption) },
         { label: 'Energia (kWh)', value: Math.round(energyConsumption) }
       ];
 
@@ -382,15 +382,26 @@ const ReportsDialog = () => {
       // Análise por Prédio
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
-      doc.text('ANÁLISE DETALHADA POR PRÉDIO', 20, yPos);
+      doc.text('ANALISE DETALHADA POR PREDIO', 20, yPos);
       yPos += 15;
 
-      buildingsData.forEach((building, buildingIndex) => {
-        const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
-        const buildingMeters = metersData.filter(m => 
+      // Garantir que buildingsData seja um array
+      const validBuildingsData = Array.isArray(buildingsData) ? buildingsData : [];
+
+      validBuildingsData.forEach((building, buildingIndex) => {
+        // Garantir que unitsData seja um array
+        const validUnitsData = Array.isArray(unitsData) ? unitsData : [];
+        const buildingUnits = validUnitsData.filter(u => u.buildingId === building.id);
+        
+        // Garantir que metersData seja um array
+        const validMetersData = Array.isArray(metersData) ? metersData : [];
+        const buildingMeters = validMetersData.filter(m => 
           buildingUnits.some(u => u.id === m.unitId)
         );
-        const buildingReadings = filteredReadings.filter(r => 
+        
+        // Garantir que filteredReadings seja um array
+        const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
+        const buildingReadings = validFilteredReadings.filter(r => 
           buildingMeters.some(m => m.id === r.meterId)
         );
 
@@ -401,20 +412,20 @@ const ReportsDialog = () => {
         // Cabeçalho do prédio
         doc.setFontSize(14);
         doc.setTextColor(52, 73, 94);
-        doc.text(`🏢 ${building.name}`, 20, yPos);
+        doc.text(`Predio: ${building.name}`, 20, yPos);
         yPos += 10;
 
         // Consumo por tipo neste prédio
         const buildingWaterConsumption = buildingReadings
-          .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
+          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'water')
           .reduce((sum, r) => sum + r.consumption, 0);
         
         const buildingEnergyConsumption = buildingReadings
-          .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energy')
+          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'energy')
           .reduce((sum, r) => sum + r.consumption, 0);
 
         const buildingConsumptionByType = [
-          { label: 'Água', value: Math.round(buildingWaterConsumption) },
+          { label: 'Agua', value: Math.round(buildingWaterConsumption) },
           { label: 'Energia', value: Math.round(buildingEnergyConsumption) }
         ].filter(item => item.value > 0);
 
@@ -424,7 +435,7 @@ const ReportsDialog = () => {
 
         // Consumo por unidade neste prédio
         const unitConsumption = buildingUnits.map(unit => {
-          const unitMeters = metersData.filter(m => m.unitId === unit.id);
+          const unitMeters = validMetersData.filter(m => m.unitId === unit.id);
           const unitReadings = buildingReadings.filter(r => 
             unitMeters.some(m => m.id === r.meterId)
           );
@@ -466,7 +477,8 @@ const ReportsDialog = () => {
       });
 
       const timeSeriesData = last7Days.map(date => {
-        const dayReadings = filteredReadings.filter(r => 
+        const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
+        const dayReadings = validFilteredReadings.filter(r => 
           new Date(r.date).toISOString().split('T')[0] === date
         );
         const totalConsumption = dayReadings.reduce((sum, r) => sum + r.consumption, 0);
@@ -478,7 +490,7 @@ const ReportsDialog = () => {
       });
 
       if (timeSeriesData.some(d => d.value > 0)) {
-        drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Últimos 7 Dias');
+        drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Ultimos 7 Dias');
         yPos += 80;
       }
     }
@@ -489,12 +501,15 @@ const ReportsDialog = () => {
       
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
-      doc.text('📅 RELATÓRIO DE DATAS DAS LEITURAS', 20, yPos);
+      doc.text('RELATORIO DE DATAS DAS LEITURAS', 20, yPos);
       yPos += 20;
 
       // Agrupar leituras por data
-      const readingsByDate = {};
-      filteredReadings.forEach(reading => {
+      const readingsByDate: { [key: string]: any[] } = {};
+      const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
+      const validMetersData = Array.isArray(metersData) ? metersData : [];
+      
+      validFilteredReadings.forEach(reading => {
         const dateKey = format(new Date(reading.date), 'dd/MM/yyyy');
         if (!readingsByDate[dateKey]) {
           readingsByDate[dateKey] = [];
@@ -510,10 +525,10 @@ const ReportsDialog = () => {
           checkPageSpace(15);
           
           const waterReadings = readings.filter(r => 
-            metersData.find(m => m.id === r.meterId)?.type === 'water'
+            validMetersData.find(m => m.id === r.meterId)?.type === 'water'
           );
           const energyReadings = readings.filter(r => 
-            metersData.find(m => m.id === r.meterId)?.type === 'energy'
+            validMetersData.find(m => m.id === r.meterId)?.type === 'energy'
           );
           const alertsCount = readings.filter(r => r.isAlert).length;
           const totalConsumption = readings.reduce((sum, r) => sum + r.consumption, 0);
@@ -524,12 +539,12 @@ const ReportsDialog = () => {
           
           doc.setFontSize(11);
           doc.setTextColor(52, 73, 94);
-          doc.text(`📅 ${date}`, 25, yPos + 2);
+          doc.text(`Data: ${date}`, 25, yPos + 2);
           
           doc.setFontSize(9);
           doc.setTextColor(100, 100, 100);
           doc.text(`${readings.length} leituras`, 25, yPos + 7);
-          doc.text(`${waterReadings.length} água`, 70, yPos + 7);
+          doc.text(`${waterReadings.length} agua`, 70, yPos + 7);
           doc.text(`${energyReadings.length} energia`, 110, yPos + 7);
           doc.text(`${alertsCount} alertas`, 150, yPos + 7);
           doc.text(`${totalConsumption.toFixed(1)} total`, 25, yPos + 11);
@@ -544,15 +559,16 @@ const ReportsDialog = () => {
       
       doc.setFontSize(16);
       doc.setTextColor(220, 53, 69);
-      doc.text('🚨 ANÁLISE DETALHADA DE ALERTAS', 20, yPos);
+      doc.text('ANALISE DETALHADA DE ALERTAS', 20, yPos);
       yPos += 20;
       
-      const alertReadings = filteredReadings.filter(r => r.isAlert);
+      const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
+      const alertReadings = validFilteredReadings.filter(r => r.isAlert);
       
       // Análise por edifício
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text('ALERTAS POR EDIFÍCIO', 20, yPos);
+      doc.text('ALERTAS POR EDIFICIO', 20, yPos);
       yPos += 10;
       
       buildingsData.forEach(building => {
@@ -578,7 +594,7 @@ const ReportsDialog = () => {
           doc.setTextColor(220, 53, 69);
           doc.text(`${building.name}: ${buildingAlerts.length} alertas`, 25, yPos + 2);
           doc.setTextColor(100, 100, 100);
-          doc.text(`(${waterAlerts} água, ${energyAlerts} energia)`, 25, yPos + 8);
+          doc.text(`(${waterAlerts} agua, ${energyAlerts} energia)`, 25, yPos + 8);
           yPos += 18;
         }
       });
@@ -628,7 +644,7 @@ const ReportsDialog = () => {
         doc.setTextColor(0, 0, 0);
         doc.text(`${medal} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Consumo: ${unit.consumption.toLocaleString('pt-BR')} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 9);
+        doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 9);
         
         yPos += 20;
       });
@@ -705,7 +721,7 @@ const ReportsDialog = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8);
       doc.text('Data', 22, yPos);
-      doc.text('Edifício', 40, yPos);
+      doc.text('Edificio', 40, yPos);
       doc.text('Unidade', 70, yPos);
       doc.text('Tipo', 90, yPos);
       doc.text('Leitura', 110, yPos);
@@ -717,18 +733,23 @@ const ReportsDialog = () => {
       doc.setTextColor(0, 0, 0);
       
       // Mostrar até 25 leituras mais recentes
-      const sortedReadings = filteredReadings
+      const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
+      const validBuildingsData = Array.isArray(buildingsData) ? buildingsData : [];
+      const validUnitsData = Array.isArray(unitsData) ? unitsData : [];
+      const validMetersData = Array.isArray(metersData) ? metersData : [];
+      
+      const sortedReadings = validFilteredReadings
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
         .slice(0, 25);
       
       sortedReadings.forEach((reading, index) => {
         checkPageSpace(8);
         
-        const meter = metersData.find(m => m.id === reading.meterId);
-        const unit = unitsData.find(u => u.id === meter?.unitId);
-        const building = buildingsData.find(b => b.id === unit?.buildingId);
+        const meter = validMetersData.find(m => m.id === reading.meterId);
+        const unit = validUnitsData.find(u => u.id === meter?.unitId);
+        const building = validBuildingsData.find(b => b.id === unit?.buildingId);
         
-        if (!meter || !unit || !building) return;
+        if (!meter ||!unit || !building) return;
         
         // Alternar cor de fundo
         if (index % 2 === 0) {
@@ -746,23 +767,22 @@ const ReportsDialog = () => {
         doc.text(format(new Date(reading.date), 'dd/MM/yy'), 22, yPos + 2);
         doc.text(building.name.substring(0, 12), 40, yPos + 2);
         doc.text(unit.number.substring(0, 8), 70, yPos + 2);
-        doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
-        doc.text(reading.reading.toLocaleString('pt-BR'), 110, yPos + 2);
-        // Updated consumption display with corrected Brazilian formatting
+        doc.text(meter.type === 'water' ? 'Agua' : 'Energia', 90, yPos + 2);
+        doc.text(reading.reading.toFixed(1), 110, yPos + 2);
         const consumptionText = meter.type === 'water' 
-          ? `${reading.consumption.toLocaleString('pt-BR')}m³`  
-          : `${reading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`;
+          ? `${reading.consumption.toFixed(1)}m3`  
+          : `${reading.consumption.toFixed(1)}kWh`;
         doc.text(consumptionText, 130, yPos + 2);
-        doc.text(meter.threshold?.toLocaleString('pt-BR') || 'N/A', 150, yPos + 2);
-        doc.text(reading.isAlert ? 'SIM' : 'Não', 170, yPos + 2);
+        doc.text(meter.threshold?.toFixed(1) || 'N/A', 150, yPos + 2);
+        doc.text(reading.isAlert ? 'SIM' : 'Nao', 170, yPos + 2);
         
         yPos += 6;
       });
       
-      if (filteredReadings.length > 25) {
+      if (validFilteredReadings.length > 25) {
         yPos += 5;
         doc.setFontSize(8);
-        doc.text(`... e mais ${filteredReadings.length - 25} leituras não exibidas`, 20, yPos);
+        doc.text(`... e mais ${validFilteredReadings.length - 25} leituras nao exibidas`, 20, yPos);
       }
     }
 
@@ -772,16 +792,16 @@ const ReportsDialog = () => {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
-      doc.text(`Página ${i} de ${totalPages}`, 105, 290, { align: 'center' });
-      doc.text('Sistema de Gestão de Consumo', 20, 290);
+      doc.text(`Pagina ${i} de ${totalPages}`, 105, 290, { align: 'center' });
+      doc.text('Sistema de Gestao de Consumo', 20, 290);
     }
     
     // Salvar PDF
     doc.save(`relatorio-consumo-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
 
     toast({
-      title: "Relatório PDF gerado",
-      description: "O relatório completo com análise detalhada por prédio e datas foi gerado e baixado com sucesso!",
+      title: "Relatorio PDF gerado",
+      description: "O relatorio completo com analise detalhada por predio e datas foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
