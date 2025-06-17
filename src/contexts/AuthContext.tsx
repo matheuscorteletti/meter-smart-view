@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  switchProfile: (newRole: 'admin' | 'user' | 'viewer') => void;
   isLoading: boolean;
 }
 
@@ -136,13 +137,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const switchProfile = (newRole: 'admin' | 'user' | 'viewer') => {
+    if (!user || user.role !== 'admin') return;
+    
+    const profileData = {
+      admin: {
+        id: 'admin-1',
+        name: 'Administrador',
+        email: 'admin@demo.com',
+        role: 'admin' as const,
+      },
+      user: {
+        id: 'user-1013',
+        name: 'João Silva',
+        email: 'user@demo.com',
+        role: 'user' as const,
+        buildingId: 'building-1013',
+        unitId: 'unit-1013-externo',
+      },
+      viewer: {
+        id: 'viewer-1',
+        name: 'Maria Santos',
+        email: 'viewer@demo.com',
+        role: 'viewer' as const,
+      }
+    };
+
+    const newUser = profileData[newRole];
+    setUser(newUser);
+    saveUser(newUser);
+  };
+
   const logout = () => {
     setUser(null);
     removeUser();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, switchProfile, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
