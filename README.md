@@ -37,7 +37,7 @@ Primeiro, configure o MySQL no seu servidor:
 mysql -u root -p
 
 -- Criar usuário para o sistema
-CREATE USER 'meter'@'%' IDENTIFIED BY 'SuaSenhaSegura123';
+CREATE USER 'meter'@'%' IDENTIFIED BY 'Exemplo123';
 
 -- Dar permissões completas
 GRANT ALL PRIVILEGES ON *.* TO 'meter'@'%';
@@ -135,11 +135,6 @@ Após a instalação via web:
 - **Login**: Email definido na instalação
 - **Senha**: Senha definida na instalação
 
-### Contas de Demonstração (se usar dados de exemplo)
-- **Admin**: admin@demo.com / admin123
-- **Usuário**: user@demo.com / user123  
-- **Visualizador**: viewer@demo.com / viewer123
-
 ## 🛡️ Segurança da Instalação
 
 - ✅ **Proteção contra reinstalação**: Instalador é desabilitado automaticamente
@@ -193,8 +188,8 @@ O instalador web cria automaticamente o arquivo `.env`:
 DB_HOST=192.168.1.100
 DB_PORT=3306
 DB_NAME=meter
+DB_PASSWORD=Exemplo123
 DB_USER=meter
-DB_PASSWORD=SuaSenhaSegura123
 
 # Segurança
 JWT_SECRET=chave_gerada_automaticamente_64_chars
@@ -202,6 +197,23 @@ JWT_SECRET=chave_gerada_automaticamente_64_chars
 # APIs
 VITE_API_BASE_URL=http://localhost:3001
 ```
+
+## 🚀 Deploy em Produção
+
+Para ambiente de produção, use Docker Compose:
+
+```bash
+# Production com Docker Compose
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### Configurações de Produção
+
+1. Configure variáveis de ambiente seguras
+2. Use HTTPS com certificados SSL
+3. Configure backup automático do MySQL
+4. Monitore logs e performance
+5. Desabilite instalador em produção
 
 ## 🛠️ Desenvolvimento
 
@@ -258,21 +270,6 @@ WHERE email = 'seu@email.com';
 SELECT id, name, email, role, created_at 
 FROM users 
 WHERE role = 'admin';
-```
-
-## 🔄 Deploy em Produção
-
-Para ambiente de produção:
-
-1. Configure variáveis de ambiente seguras
-2. Use HTTPS com certificados SSL
-3. Configure backup automático do MySQL
-4. Monitore logs e performance
-5. Desabilite instalador em produção
-
-```bash
-# Production com Docker Compose
-docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ## ✨ Funcionalidades Principais

@@ -1,0 +1,53 @@
+
+# Docker Compose para ambiente de produção
+# Conectando com banco de dados externo
+
+version: '3.8'
+
+services:
+  # Frontend React (Produção)
+  frontend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: meter-frontend-prod
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+    depends_on:
+      - backend
+    networks:
+      - meter-network
+    restart: unless-stopped
+
+  # Backend (Produção)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: meter-backend-prod
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - PORT=${PORT}
+    env_file:
+      - .env
+    networks:
+      - meter-network
+    restart: unless-stopped
+
+networks:
+  meter-network:
+    driver: bridge
+
+volumes:
+  meter-data:
+    driver: local
