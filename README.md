@@ -77,7 +77,7 @@ docker-compose up -d
 docker-compose ps
 
 # Acessar instalador web
-http://localhost:3000/install
+http://localhost/install
 ```
 
 **No instalador web você irá configurar:**
@@ -121,7 +121,7 @@ O sistema possui um **instalador web completo** que:
 
 ### Como usar o instalador:
 
-1. **Acesse**: `http://localhost:3000/install`
+1. **Acesse**: `http://localhost/install`
 2. **Configure o MySQL**: Informe IP do servidor, porta 3306, usuário `meter`, senha
 3. **Defina o administrador**: Nome, email e senha
 4. **Inicie a instalação**: Clique em "🚀 Iniciar Instalação"
@@ -131,7 +131,7 @@ O sistema possui um **instalador web completo** que:
 ## 🔐 Primeiro Acesso
 
 Após a instalação via web:
-- **URL**: http://localhost:3000
+- **URL**: http://localhost
 - **Login**: Email definido na instalação
 - **Senha**: Senha definida na instalação
 
@@ -164,7 +164,7 @@ docker-compose up -d
 
 4. **Acessar novamente** `/install`
 ```
-http://localhost:3000/install
+http://localhost/install
 ```
 
 ## 🐳 Configuração Docker
@@ -174,7 +174,7 @@ http://localhost:3000/install
 ```yaml
 # docker-compose.yml
 services:
-  frontend:    # React App (porta 3000)
+  frontend:    # React App (porta 80)
   backend:     # Node.js API (porta 3001)
   # MySQL externo (não no Docker)
 ```
@@ -203,8 +203,8 @@ VITE_API_BASE_URL=http://localhost:3001
 Para ambiente de produção, use Docker Compose:
 
 ```bash
-# Production com Docker Compose
-docker-compose -f docker-compose.prod.yml up -d
+# Produção com Docker Compose
+docker-compose up -d
 ```
 
 ### Configurações de Produção
@@ -243,7 +243,6 @@ backend/                # Backend Node.js
 ├── src/routes/
 │   └── install.js      # API do instalador
 docker-compose.yml      # Configuração Docker
-docker-compose.prod.yml # Configuração Produção
 install/                # Scripts de instalação
 ├── init.sql           # Script do banco
 └── INSTALLER.md       # Documentação do instalador
