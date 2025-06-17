@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Building, Unit } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { FileText, Calendar as CalendarIcon, Download, Settings } from 'lucide-react';
+import { FileText, Calendar as CalendarIcon, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -286,17 +285,6 @@ const ReportsDialog = () => {
           <div className="space-y-4">
             <Label className="text-base font-semibold">Incluir no Relatório</Label>
             <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="charts"
-                  checked={reportOptions.includeCharts}
-                  onCheckedChange={(checked) => 
-                    setReportOptions(prev => ({ ...prev, includeCharts: checked as boolean }))
-                  }
-                />
-                <Label htmlFor="charts">Gráficos e Visualizações</Label>
-              </div>
-              
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="summary"

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { TrendingUp, Calendar as CalendarIcon, FileText, Download, BarChart3, PieChart } from 'lucide-react';
+import { TrendingUp, Calendar as CalendarIcon, FileText, Download, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart as RechartsPieChart, Cell, AreaChart, Area, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import ReportsDialog from './ReportsDialog';
@@ -355,7 +354,7 @@ const ConsumptionDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Consumo Diário</CardTitle>
+            <CardTitle>Consumo dos Últimos 30 Dias</CardTitle>
             <CardDescription>Evolução do consumo ao longo do tempo</CardDescription>
           </CardHeader>
           <CardContent>
@@ -368,34 +367,6 @@ const ConsumptionDashboard = () => {
                 <Area type="monotone" dataKey="agua" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="Água (L)" />
                 <Area type="monotone" dataKey="energia" stackId="1" stroke="#10B981" fill="#10B981" name="Energia (kWh)" />
               </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição de Consumo</CardTitle>
-            <CardDescription>Proporção entre água e energia</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </RechartsPieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
