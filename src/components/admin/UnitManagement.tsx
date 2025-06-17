@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,13 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building, Unit } from '@/types';
 import { getBuildings, getUnits, saveUnits } from '@/lib/storage';
-import { Home, Plus, Building2 } from 'lucide-react';
+import { Home, Plus, Building2, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const UnitManagement = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
   const [formData, setFormData] = useState({ buildingId: '', number: '', floor: '' });
 
   useEffect(() => {
@@ -57,6 +58,45 @@ const UnitManagement = () => {
     toast({
       title: "Unidade cadastrada",
       description: "Unidade adicionada com sucesso!",
+    });
+  };
+
+  const handleEdit = (unit: Unit) => {
+    setEditingUnit(unit);
+    setFormData({ 
+      buildingId: unit.buildingId, 
+      number: unit.number, 
+      floor: unit.floor 
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingUnit) return;
+
+    const updatedUnitsRaw = units.filter(u => !u.buildingName).map(unit =>
+      unit.id === editingUnit.id
+        ? { ...unit, buildingId: formData.buildingId, number: formData.number, floor: formData.floor }
+        : unit
+    );
+
+    const unitsWithBuildingName = updatedUnitsRaw.map(unit => ({
+      ...unit,
+      buildingName: buildings.find(b => b.id === unit.buildingId)?.name || 'N/A'
+    }));
+
+    setUnits(unitsWithBuildingName);
+    saveUnits(updatedUnitsRaw);
+    
+    setFormData({ buildingId: '', number: '', floor: '' });
+    setEditingUnit(null);
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Unidade atualizada",
+      description: "Unidade editada com sucesso!",
     });
   };
 
@@ -121,20 +161,79 @@ const UnitManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de Edição */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Unidade</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-building">Edifício</Label>
+                <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um edifício" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {buildings.map((building) => (
+                      <SelectItem key={building.id} value={building.id}>
+                        {building.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-number">Número da Unidade</Label>
+                <Input
+                  id="edit-number"
+                  value={formData.number}
+                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                  placeholder="Ex: 101, 205, Sala A"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-floor">Andar</Label>
+                <Input
+                  id="edit-floor"
+                  value={formData.floor}
+                  onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                  placeholder="Ex: 1, 2, Térreo"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={!formData.buildingId}>
+                Salvar Alterações
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {units.map((unit) => (
           <Card key={unit.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Home className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <Home className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Unidade {unit.number}</CardTitle>
+                    <CardDescription>Andar {unit.floor}</CardDescription>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg">Unidade {unit.number}</CardTitle>
-                  <CardDescription>Andar {unit.floor}</CardDescription>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(unit)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>

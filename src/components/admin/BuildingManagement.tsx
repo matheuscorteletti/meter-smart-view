@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building } from '@/types';
 import { getBuildings, saveBuildings } from '@/lib/storage';
-import { Building2, Plus, MapPin } from 'lucide-react';
+import { Building2, Plus, MapPin, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const BuildingManagement = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '' });
 
   useEffect(() => {
@@ -39,6 +41,36 @@ const BuildingManagement = () => {
     toast({
       title: "Edifício cadastrado",
       description: "Edifício adicionado com sucesso!",
+    });
+  };
+
+  const handleEdit = (building: Building) => {
+    setEditingBuilding(building);
+    setFormData({ name: building.name, address: building.address });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingBuilding) return;
+
+    const updatedBuildings = buildings.map(building =>
+      building.id === editingBuilding.id
+        ? { ...building, name: formData.name, address: formData.address }
+        : building
+    );
+
+    setBuildings(updatedBuildings);
+    saveBuildings(updatedBuildings);
+    
+    setFormData({ name: '', address: '' });
+    setEditingBuilding(null);
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Edifício atualizado",
+      description: "Edifício editado com sucesso!",
     });
   };
 
@@ -88,19 +120,63 @@ const BuildingManagement = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Dialog de Edição */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Edifício</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome do Edifício</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ex: Edifício Central"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-address">Endereço</Label>
+                <Input
+                  id="edit-address"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Ex: Rua das Flores, 123"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Salvar Alterações
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {buildings.map((building) => (
           <Card key={building.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">{building.name}</CardTitle>
+                  </div>
                 </div>
-                <div>
-                  <CardTitle className="text-lg">{building.name}</CardTitle>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(building)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
