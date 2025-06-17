@@ -1,3 +1,4 @@
+
 // Local storage utilities for data persistence
 import { User, Building, Unit, Meter, Reading } from '@/types';
 
@@ -65,8 +66,9 @@ export const getReadings = (): Reading[] => {
 
 // Generate sample data for demonstration
 export const initializeSampleData = () => {
-  if (localStorage.getItem('sample_data_initialized')) return;
-
+  // Limpar dados existentes e forçar reinicialização
+  localStorage.removeItem('sample_data_initialized');
+  
   const buildings: Building[] = [
     {
       id: 'building-1013',
@@ -239,4 +241,6 @@ export const initializeSampleData = () => {
   saveMeters(meters);
   saveReadings(readings);
   localStorage.setItem('sample_data_initialized', 'true');
+  
+  console.log('Dados de exemplo inicializados:', { buildings, units, meters, readings });
 };
