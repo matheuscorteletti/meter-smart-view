@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit3 } from 'lucide-react';
 import { Meter, Reading } from '@/types';
-import { addReading } from '@/lib/storage';
+import { addReading, getReadings } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface EditReadingDialogProps {
@@ -28,7 +28,13 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       return;
     }
 
-    const lastReading = meter.latestReading?.reading || meter.initialReading;
+    // Get the latest reading from storage
+    const allReadings = getReadings();
+    const meterReadings = allReadings
+      .filter(r => r.meterId === meter.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const lastReading = meterReadings[0]?.reading || meter.initialReading;
     const consumption = Math.max(0, readingValue - lastReading);
     const isAlert = consumption > meter.threshold;
 
