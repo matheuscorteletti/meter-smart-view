@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -28,6 +29,7 @@ const ReportsDialog = () => {
     includeSummary: true,
     includeDetails: true,
     includeAlerts: true,
+    includeCharts: true,
   });
 
   useEffect(() => {
@@ -48,6 +50,157 @@ const ReportsDialog = () => {
       setSelectedUnit('all');
     }
   }, [selectedBuilding]);
+
+  // Função para desenhar gráfico de barras simples
+  const drawBarChart = (doc: jsPDF, x: number, y: number, width: number, height: number, data: any[], title: string) => {
+    // Título do gráfico
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, x, y - 5);
+    
+    // Borda do gráfico
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(x, y, width, height);
+    
+    if (data.length === 0) return;
+    
+    const maxValue = Math.max(...data.map(d => d.value));
+    const barWidth = width / data.length * 0.8;
+    const spacing = width / data.length * 0.2;
+    
+    data.forEach((item, index) => {
+      const barHeight = (item.value / maxValue) * (height - 20);
+      const barX = x + (index * (barWidth + spacing)) + spacing/2;
+      const barY = y + height - barHeight - 10;
+      
+      // Desenhar barra
+      doc.setFillColor(52, 152, 219);
+      doc.rect(barX, barY, barWidth, barHeight, 'F');
+      
+      // Label do valor
+      doc.setFontSize(8);
+      doc.text(item.value.toString(), barX + barWidth/2, barY - 2, { align: 'center' });
+      
+      // Label da categoria
+      doc.text(item.label, barX + barWidth/2, y + height + 5, { align: 'center' });
+    });
+  };
+
+  // Função para desenhar gráfico de pizza simples
+  const drawPieChart = (doc: jsPDF, centerX: number, centerY: number, radius: number, data: any[], title: string) => {
+    // Título do gráfico
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, centerX, centerY - radius - 10, { align: 'center' });
+    
+    if (data.length === 0) return;
+    
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    let currentAngle = 0;
+    
+    const colors = [
+      [52, 152, 219],  // Azul
+      [46, 204, 113],  // Verde
+      [231, 76, 60],   // Vermelho
+      [241, 196, 15],  // Amarelo
+      [155, 89, 182],  // Roxo
+    ];
+    
+    data.forEach((item, index) => {
+      const sliceAngle = (item.value / total) * 360;
+      const color = colors[index % colors.length];
+      
+      // Desenhar fatia
+      doc.setFillColor(color[0], color[1], color[2]);
+      
+      // Criar pontos para a fatia
+      const startAngle = currentAngle * Math.PI / 180;
+      const endAngle = (currentAngle + sliceAngle) * Math.PI / 180;
+      
+      const x1 = centerX + Math.cos(startAngle) * radius;
+      const y1 = centerY + Math.sin(startAngle) * radius;
+      const x2 = centerX + Math.cos(endAngle) * radius;
+      const y2 = centerY + Math.sin(endAngle) * radius;
+      
+      // Desenhar triângulo para simular fatia
+      doc.triangle(centerX, centerY, x1, y1, x2, y2, 'F');
+      
+      // Label da porcentagem
+      const labelAngle = (currentAngle + sliceAngle/2) * Math.PI / 180;
+      const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+      const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+      const percentage = ((item.value / total) * 100).toFixed(1);
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text(`${percentage}%`, labelX, labelY, { align: 'center' });
+      
+      currentAngle += sliceAngle;
+    });
+    
+    // Legenda
+    data.forEach((item, index) => {
+      const color = colors[index % colors.length];
+      const legendY = centerY + radius + 15 + (index * 10);
+      
+      // Quadrado colorido
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.rect(centerX - 60, legendY - 3, 5, 5, 'F');
+      
+      // Texto da legenda
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(9);
+      doc.text(`${item.label}: ${item.value}`, centerX - 50, legendY);
+    });
+  };
+
+  // Função para desenhar gráfico de linha
+  const drawLineChart = (doc: jsPDF, x: number, y: number, width: number, height: number, data: any[], title: string) => {
+    // Título do gráfico
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, x, y - 5);
+    
+    // Borda do gráfico
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(x, y, width, height);
+    
+    if (data.length < 2) return;
+    
+    const maxValue = Math.max(...data.map(d => d.value));
+    const minValue = Math.min(...data.map(d => d.value));
+    const valueRange = maxValue - minValue || 1;
+    
+    // Desenhar pontos e linhas
+    doc.setDrawColor(52, 152, 219);
+    doc.setLineWidth(2);
+    
+    for (let i = 0; i < data.length - 1; i++) {
+      const x1 = x + 10 + (i / (data.length - 1)) * (width - 20);
+      const y1 = y + height - 10 - ((data[i].value - minValue) / valueRange) * (height - 20);
+      const x2 = x + 10 + ((i + 1) / (data.length - 1)) * (width - 20);
+      const y2 = y + height - 10 - ((data[i + 1].value - minValue) / valueRange) * (height - 20);
+      
+      doc.line(x1, y1, x2, y2);
+      
+      // Pontos
+      doc.setFillColor(52, 152, 219);
+      doc.circle(x1, y1, 2, 'F');
+    }
+    
+    // Último ponto
+    const lastX = x + 10 + ((data.length - 1) / (data.length - 1)) * (width - 20);
+    const lastY = y + height - 10 - ((data[data.length - 1].value - minValue) / valueRange) * (height - 20);
+    doc.circle(lastX, lastY, 2, 'F');
+    
+    // Labels dos eixos
+    doc.setFontSize(8);
+    doc.setTextColor(100, 100, 100);
+    data.forEach((item, index) => {
+      const labelX = x + 10 + (index / (data.length - 1)) * (width - 20);
+      doc.text(item.label, labelX, y + height + 8, { align: 'center' });
+    });
+  };
 
   const generatePDFReport = () => {
     // Coletar dados para o relatório
@@ -198,6 +351,102 @@ const ReportsDialog = () => {
       yPos += 15;
     }
 
+    // Gráficos
+    if (reportOptions.includeCharts && filteredReadings.length > 0) {
+      // Nova página para gráficos
+      doc.addPage();
+      yPos = 30;
+      
+      doc.setFontSize(18);
+      doc.setTextColor(44, 62, 80);
+      doc.text('ANÁLISE GRÁFICA', 105, yPos, { align: 'center' });
+      yPos += 20;
+
+      // Gráfico 1: Consumo por Tipo
+      const waterConsumption = filteredReadings
+        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
+        .reduce((sum, r) => sum + r.consumption, 0);
+      
+      const energyConsumption = filteredReadings
+        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energy')
+        .reduce((sum, r) => sum + r.consumption, 0);
+
+      const consumptionByType = [
+        { label: 'Água (m³)', value: Math.round(waterConsumption) },
+        { label: 'Energia (kWh)', value: Math.round(energyConsumption) }
+      ];
+
+      drawBarChart(doc, 20, yPos, 80, 50, consumptionByType, 'Consumo por Tipo');
+
+      // Gráfico 2: Distribuição de Alertas
+      const waterAlerts = filteredReadings.filter(r => 
+        r.isAlert && metersData.find(m => m.id === r.meterId)?.type === 'water'
+      ).length;
+      const energyAlerts = filteredReadings.filter(r => 
+        r.isAlert && metersData.find(m => m.id === r.meterId)?.type === 'energy'
+      ).length;
+      const normalReadings = filteredReadings.filter(r => !r.isAlert).length;
+
+      const alertsData = [
+        { label: 'Alertas Água', value: waterAlerts },
+        { label: 'Alertas Energia', value: energyAlerts },
+        { label: 'Leituras Normais', value: normalReadings }
+      ].filter(item => item.value > 0);
+
+      if (alertsData.length > 0) {
+        drawPieChart(doc, 150, yPos + 25, 25, alertsData, 'Distribuição de Alertas');
+      }
+
+      yPos += 80;
+
+      // Gráfico 3: Consumo ao Longo do Tempo (últimos 7 dias)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toISOString().split('T')[0];
+      });
+
+      const timeSeriesData = last7Days.map(date => {
+        const dayReadings = filteredReadings.filter(r => 
+          new Date(r.date).toISOString().split('T')[0] === date
+        );
+        const totalConsumption = dayReadings.reduce((sum, r) => sum + r.consumption, 0);
+        
+        return {
+          label: format(new Date(date), 'dd/MM'),
+          value: Math.round(totalConsumption)
+        };
+      });
+
+      if (timeSeriesData.some(d => d.value > 0)) {
+        drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Últimos 7 Dias');
+        yPos += 80;
+      }
+
+      // Gráfico 4: Consumo por Edifício
+      const consumptionByBuilding = buildingsData.map(building => {
+        const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
+        const buildingMeters = metersData.filter(m => 
+          buildingUnits.some(u => u.id === m.unitId)
+        );
+        const buildingReadings = filteredReadings.filter(r => 
+          buildingMeters.some(m => m.id === r.meterId)
+        );
+        const totalConsumption = buildingReadings.reduce((sum, r) => sum + r.consumption, 0);
+        
+        return {
+          label: building.name.substring(0, 8),
+          value: Math.round(totalConsumption)
+        };
+      }).filter(item => item.value > 0);
+
+      if (consumptionByBuilding.length > 0) {
+        checkPageSpace(80);
+        drawBarChart(doc, 20, yPos, 170, 60, consumptionByBuilding, 'Consumo por Edifício');
+        yPos += 80;
+      }
+    }
+
     // Análise de Alertas
     if (reportOptions.includeAlerts && alerts > 0) {
       checkPageSpace(40);
@@ -318,7 +567,7 @@ const ReportsDialog = () => {
 
     toast({
       title: "Relatório PDF gerado",
-      description: "O relatório completo foi gerado e baixado com sucesso!",
+      description: "O relatório completo com gráficos foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
@@ -336,7 +585,7 @@ const ReportsDialog = () => {
         <DialogHeader>
           <DialogTitle>Gerar Relatório PDF</DialogTitle>
           <DialogDescription>
-            Configure os parâmetros para gerar um relatório detalhado de consumo
+            Configure os parâmetros para gerar um relatório detalhado de consumo com gráficos
           </DialogDescription>
         </DialogHeader>
         
@@ -441,6 +690,17 @@ const ReportsDialog = () => {
                   }
                 />
                 <Label htmlFor="summary">Resumo Executivo</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="charts"
+                  checked={reportOptions.includeCharts}
+                  onCheckedChange={(checked) => 
+                    setReportOptions(prev => ({ ...prev, includeCharts: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="charts">Gráficos e Análises</Label>
               </div>
               
               <div className="flex items-center space-x-2">
