@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { addReading, getReadings } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface EditReadingDialogProps {
-  meter: Meter;
+  meter: Meter & { unitNumber: string };
   onReadingAdded: () => void;
 }
 
@@ -18,16 +18,10 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [reading, setReading] = useState('');
+  const [currentReading, setCurrentReading] = useState(0);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const readingValue = Number(reading);
-    if (isNaN(readingValue) || readingValue < 0) {
-      alert('Por favor, insira uma leitura válida');
-      return;
-    }
-
+  useEffect(() => {
     // Get the latest reading from storage
     const allReadings = getReadings();
     const meterReadings = allReadings
@@ -35,7 +29,58 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const lastReading = meterReadings[0]?.reading || meter.initialReading;
-    const consumption = Math.max(0, readingValue - lastReading);
+    setCurrentReading(lastReading);
+  }, [meter.id, meter.initialReading]);
+
+  const validateReading = (value: string) => {
+    setError('');
+    
+    if (!value) return;
+
+    const numValue = Number(value);
+    
+    // Check if it's a valid number
+    if (isNaN(numValue)) {
+      setError('Por favor, insira um valor numérico válido');
+      return;
+    }
+
+    // Check if it's not lower than current reading
+    if (numValue <= currentReading) {
+      setError(`O valor deve ser maior que a leitura atual: ${currentReading.toLocaleString('pt-BR')}`);
+      return;
+    }
+
+    // Check digits count if defined
+    if (meter.digits && value.length !== meter.digits) {
+      setError(`O valor deve conter exatamente ${meter.digits} dígitos`);
+      return;
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setReading(value);
+    validateReading(value);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const readingValue = Number(reading);
+    
+    // Final validation
+    if (isNaN(readingValue) || readingValue <= currentReading) {
+      setError(`O valor deve ser maior que a leitura atual: ${currentReading.toLocaleString('pt-BR')}`);
+      return;
+    }
+
+    if (meter.digits && reading.length !== meter.digits) {
+      setError(`O valor deve conter exatamente ${meter.digits} dígitos`);
+      return;
+    }
+
+    const consumption = Math.max(0, readingValue - currentReading);
     const isAlert = consumption > meter.threshold;
 
     const newReading: Omit<Reading, 'id'> = {
@@ -52,8 +97,11 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     addReading(newReading);
     onReadingAdded();
     setReading('');
+    setError('');
     setIsOpen(false);
   };
+
+  const isFormValid = reading && !error && Number(reading) > currentReading;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -73,22 +121,33 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="reading">Leitura Atual</Label>
-            <Input
-              id="reading"
-              type="number"
-              value={reading}
-              onChange={(e) => setReading(e.target.value)}
-              placeholder="Digite a leitura atual"
-              required
-              min="0"
-              step="0.01"
-            />
+            <div className="space-y-2">
+              <Input
+                id="reading"
+                type="number"
+                value={reading}
+                onChange={handleInputChange}
+                placeholder={`Digite a leitura atual (maior que ${currentReading.toLocaleString('pt-BR')})`}
+                required
+                min={currentReading + 1}
+                className={error ? 'border-red-500' : ''}
+              />
+              <div className="text-sm text-gray-600">
+                <p>Leitura anterior: <strong>{currentReading.toLocaleString('pt-BR')}</strong></p>
+                {meter.digits && (
+                  <p>Deve conter exatamente <strong>{meter.digits} dígitos</strong></p>
+                )}
+              </div>
+              {error && (
+                <p className="text-sm text-red-600">{error}</p>
+              )}
+            </div>
           </div>
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={!isFormValid}>
               Salvar Leitura
             </Button>
           </div>
