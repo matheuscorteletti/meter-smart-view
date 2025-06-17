@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { Building2, Droplets, Zap, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, ArrowLeft } from 'lucide-react';
 import EditReadingDialog from './EditReadingDialog';
+import BuildingSelector from './BuildingSelector';
 
 interface MeterWithDetails extends Meter {
   unitNumber: string;
@@ -15,17 +16,30 @@ interface MeterWithDetails extends Meter {
 }
 
 const UserDashboard = () => {
+  const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const buildingsData = getBuildings();
+    setBuildings(buildingsData);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBuildingId) return;
+
+    const buildingsData = getBuildings();
     const unitsData = getUnits();
     const metersData = getMeters();
     const readingsData = getReadings();
 
+    // Filter units by selected building
+    const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
+    const buildingUnitIds = buildingUnits.map(unit => unit.id);
+
     const metersWithDetails: MeterWithDetails[] = metersData
-      .filter(meter => meter.isActive !== false)
+      .filter(meter => meter.isActive !== false && buildingUnitIds.includes(meter.unitId))
       .map(meter => {
         const unit = unitsData.find(u => u.id === meter.unitId);
         const building = buildingsData.find(b => b.id === unit?.buildingId);
@@ -42,10 +56,18 @@ const UserDashboard = () => {
       });
     
     setMeters(metersWithDetails);
-  }, [refreshTrigger]);
+  }, [selectedBuildingId, refreshTrigger]);
 
   const handleReadingAdded = () => {
     setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleSelectBuilding = (buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+  };
+
+  const handleBackToBuildings = () => {
+    setSelectedBuildingId(null);
   };
 
   const getMeterIcon = (type: string) => {
@@ -58,12 +80,32 @@ const UserDashboard = () => {
       : 'bg-gradient-to-r from-yellow-500 to-orange-500';
   };
 
+  // If no building is selected, show building selector
+  if (!selectedBuildingId) {
+    return <BuildingSelector buildings={buildings} onSelectBuilding={handleSelectBuilding} />;
+  }
+
+  const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
-          <p className="text-gray-600">Monitore seus medidores e registre leituras</p>
+          <div className="flex items-center space-x-2 mb-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleBackToBuildings}
+              className="flex items-center space-x-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Voltar aos Edifícios</span>
+            </Button>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {selectedBuilding?.name || 'Edifício'}
+          </h1>
+          <p className="text-gray-600">Monitore os medidores e registre leituras</p>
         </div>
       </div>
 
@@ -86,7 +128,7 @@ const UserDashboard = () => {
                           {meter.type === 'water' ? 'Água' : 'Energia'}
                         </CardTitle>
                         <CardDescription>
-                          {meter.buildingName} - Unidade {meter.unitNumber}
+                          Unidade {meter.unitNumber}
                         </CardDescription>
                       </div>
                     </div>
@@ -147,7 +189,7 @@ const UserDashboard = () => {
               Nenhum medidor encontrado
             </h3>
             <p className="text-gray-600">
-              Não há medidores ativos cadastrados no sistema
+              Não há medidores ativos cadastrados neste edifício
             </p>
           </CardContent>
         </Card>
