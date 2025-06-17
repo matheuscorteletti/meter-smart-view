@@ -113,11 +113,11 @@ const UserDashboard = () => {
                             <TrendingUp className="w-4 h-4 mr-1" />
                             {meter.type === 'water' ? (
                               <div>
-                                <div>{meter.latestReading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³</div>
-                                <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}L)</div>
+                                <div>{meter.latestReading.consumption.toLocaleString('pt-BR')}m³</div>
+                                <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toLocaleString('pt-BR')} litros)</div>
                               </div>
                             ) : (
-                              <div>{meter.latestReading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}kWh</div>
+                              <div>{meter.latestReading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh</div>
                             )}
                           </div>
                         </div>

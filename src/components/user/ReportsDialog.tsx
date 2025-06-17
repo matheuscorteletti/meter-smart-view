@@ -176,10 +176,10 @@ const ReportsDialog = () => {
       doc.text('VALOR', 107, yPos + 2);
       yPos += 12;
       
-      // Dados do resumo com formatação brasileira
+      // Dados do resumo com formatação brasileira corrigida
       const summaryData = [
-        ['Consumo Total de Água', `${totalWater.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} m³ (${(totalWater * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} L)`],
-        ['Consumo Total de Energia', `${totalEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh`],
+        ['Consumo Total de Água', `${totalWater.toLocaleString('pt-BR')}m³ (${(totalWater * 1000).toLocaleString('pt-BR')} litros)`],
+        ['Consumo Total de Energia', `${totalEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`],
         ['Total de Alertas', alerts.toString()],
         ['Total de Leituras', totalReadings.toString()],
         ['Medidores Ativos', activeMeters.toString()]
@@ -285,9 +285,9 @@ const ReportsDialog = () => {
         doc.text(unit.number.substring(0, 8), 70, yPos + 2);
         doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
         doc.text(reading.reading.toLocaleString('pt-BR'), 110, yPos + 2);
-        // Updated consumption display with proper Brazilian formatting
+        // Updated consumption display with corrected Brazilian formatting
         const consumptionText = meter.type === 'water' 
-          ? `${reading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³`  
+          ? `${reading.consumption.toLocaleString('pt-BR')}m³`  
           : `${reading.consumption.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`;
         doc.text(consumptionText, 130, yPos + 2);
         doc.text(meter.threshold?.toLocaleString('pt-BR') || 'N/A', 150, yPos + 2);

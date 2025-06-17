@@ -193,11 +193,11 @@ const ConsumptionDashboard = () => {
             <div key={index} className="mt-1">
               {entry.dataKey === 'agua' ? (
                 <>
-                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} m³`}</p>
-                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} litros)`}</p>
+                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toLocaleString('pt-BR')}m³`}</p>
+                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toLocaleString('pt-BR')} litros)`}</p>
                 </>
               ) : (
-                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh`}</p>
+                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`}</p>
               )}
             </div>
           ))}
@@ -314,7 +314,7 @@ const ConsumptionDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de Resumo - Updated with proper Brazilian formatting */}
+      {/* Cards de Resumo - Fixed formatting */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -324,9 +324,9 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryData.totalWater.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³</div>
+            <div className="text-2xl font-bold">{summaryData.totalWater.toLocaleString('pt-BR')}m³</div>
             <p className="text-xs text-muted-foreground">
-              {(summaryData.totalWater * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} litros | Média: {summaryData.avgWater.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })}m³/dia
+              {(summaryData.totalWater * 1000).toLocaleString('pt-BR')} litros | Média: {summaryData.avgWater.toLocaleString('pt-BR')}m³/dia
             </p>
           </CardContent>
         </Card>
