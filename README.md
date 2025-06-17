@@ -1,73 +1,143 @@
-# Welcome to your Lovable project
 
-## Project info
+# Sistema de Medidores
 
-**URL**: https://lovable.dev/projects/4029d73d-8548-4fe2-8eac-cc334a11ed89
+Sistema completo para gerenciamento de medidores de água e energia em edifícios residenciais e comerciais.
 
-## How can I edit this code?
+## 🚀 Características
 
-There are several ways of editing your application.
+- **Interface Moderna**: React + TypeScript + Tailwind CSS
+- **Gerenciamento Completo**: Edifícios, unidades, medidores e leituras
+- **Alertas Inteligentes**: Notificações de consumo elevado
+- **Relatórios**: Gráficos e análises de consumo
+- **Multi-usuário**: Sistema de permissões (admin/usuário)
+- **Responsivo**: Funciona em desktop, tablet e mobile
 
-**Use Lovable**
+## 🏗️ Arquitetura
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4029d73d-8548-4fe2-8eac-cc334a11ed89) and start prompting.
+- **Frontend**: React 18 + Vite + TypeScript
+- **UI Components**: Shadcn/UI + Tailwind CSS
+- **Backend**: Node.js + Express (preparado)
+- **Banco de Dados**: MySQL 8.0+
+- **Deploy**: Docker + Docker Compose
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📦 Instalação Rápida
 
-**Use your preferred IDE**
+### Pré-requisitos
+- Docker e Docker Compose
+- MySQL Server em 192.168.100.240
+- Git
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Configurar Banco de Dados
+```bash
+# Execute o script de instalação no MySQL
+mysql -h 192.168.100.240 -u root -p < install/init.sql
 ```
 
-**Edit a file directly in GitHub**
+### 2. Iniciar Sistema
+```bash
+# Clonar repositório
+git clone [SEU_REPOSITORIO]
+cd sistema-medidores
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Tornar script executável
+chmod +x docker-dev.sh
 
-**Use GitHub Codespaces**
+# Iniciar aplicação
+./docker-dev.sh up
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 3. Acessar Sistema
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:3001
 
-## What technologies are used for this project?
+## 📚 Documentação Completa
 
-This project is built with:
+Consulte o [Guia de Instalação Completo](install/README.md) para:
+- Configuração detalhada do Ubuntu
+- Troubleshooting avançado
+- Configurações de segurança
+- Backup e manutenção
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 🐳 Comandos Docker
 
-## How can I deploy this project?
+```bash
+./docker-dev.sh up       # Iniciar sistema
+./docker-dev.sh down     # Parar sistema
+./docker-dev.sh logs     # Ver logs
+./docker-dev.sh status   # Status dos containers
+./docker-dev.sh clean    # Limpar ambiente
+```
 
-Simply open [Lovable](https://lovable.dev/projects/4029d73d-8548-4fe2-8eac-cc334a11ed89) and click on Share -> Publish.
+## 🔐 Acesso Padrão
 
-## Can I connect a custom domain to my Lovable project?
+- **Email**: admin@medidores.local
+- **Senha**: [configurar após instalação]
 
-Yes, you can!
+## 🛠️ Desenvolvimento
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Este projeto utiliza:
+- **React Query** para gerenciamento de estado
+- **React Hook Form** para formulários
+- **Recharts** para gráficos
+- **Lucide React** para ícones
+- **Date-fns** para manipulação de datas
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/          # Componentes React
+│   ├── admin/          # Área administrativa
+│   ├── user/           # Área do usuário
+│   └── ui/             # Componentes UI base
+├── contexts/           # Context providers
+├── hooks/              # Custom hooks
+├── lib/                # Utilitários
+├── pages/              # Páginas principais
+├── types/              # Definições TypeScript
+install/                # Scripts de instalação
+├── init.sql           # Script do banco
+└── README.md          # Guia completo
+```
+
+## 🔄 Deploy em Produção
+
+Para ambiente de produção:
+
+1. Configure variáveis de ambiente seguras
+2. Use HTTPS com certificados SSL
+3. Configure backup automático do MySQL
+4. Monitore logs e performance
+5. Implemente rotação de logs
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
+
+## ✨ Funcionalidades Principais
+
+### Para Administradores
+- Gerenciar edifícios e unidades
+- Cadastrar e configurar medidores
+- Visualizar todas as leituras
+- Gerar relatórios completos
+- Gerenciar usuários do sistema
+
+### Para Usuários
+- Registrar leituras mensais
+- Visualizar histórico de consumo
+- Receber alertas de consumo elevado
+- Gerar relatórios da unidade
+- Acompanhar tendências
+
+---
+
+**Desenvolvido para facilitar o gerenciamento de medidores em condomínios e edifícios comerciais.**
