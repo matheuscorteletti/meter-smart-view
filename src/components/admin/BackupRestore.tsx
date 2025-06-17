@@ -138,40 +138,6 @@ const BackupRestore = () => {
     }
   };
 
-  const clearAllData = () => {
-    if (!confirm('ATENÇÃO: Esta ação irá apagar TODOS os dados do sistema. Esta ação não pode ser desfeita. Deseja continuar?')) {
-      return;
-    }
-
-    if (!confirm('Tem certeza absoluta? Todos os edifícios, unidades, medidores e leituras serão perdidos permanentemente.')) {
-      return;
-    }
-
-    try {
-      saveBuildings([]);
-      saveUnits([]);
-      saveMeters([]);
-      saveReadings([]);
-      
-      toast({
-        title: "Dados limpos",
-        description: "Todos os dados do sistema foram removidos.",
-      });
-
-      // Recarregar página
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-
-    } catch (error) {
-      toast({
-        title: "Erro ao limpar dados",
-        description: "Ocorreu um erro ao limpar os dados do sistema.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div>
@@ -278,41 +244,6 @@ const BackupRestore = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Operações Perigosas */}
-      <Card className="border-red-200">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-red-700">
-            <AlertTriangle className="w-5 h-5" />
-            <span>Zona de Perigo</span>
-          </CardTitle>
-          <CardDescription className="text-red-600">
-            Operações irreversíveis que podem causar perda de dados
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-red-50 p-4 rounded-lg mb-4">
-            <div className="flex items-start space-x-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-900">Limpar Todos os Dados</p>
-                <p className="text-sm text-red-700 mt-1">
-                  Esta ação irá remover permanentemente todos os edifícios, unidades, medidores e leituras do sistema.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <Button 
-            onClick={clearAllData}
-            variant="destructive"
-            className="w-full"
-          >
-            <AlertTriangle className="w-4 h-4 mr-2" />
-            Limpar Todos os Dados
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Informações Técnicas */}
       <Card>
