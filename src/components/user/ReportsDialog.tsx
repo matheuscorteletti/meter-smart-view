@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -64,6 +65,8 @@ const ReportsDialog = () => {
     if (data.length === 0) return;
     
     const maxValue = Math.max(...data.map(d => d.value));
+    if (maxValue === 0) return;
+    
     const barWidth = width / data.length * 0.8;
     const spacing = width / data.length * 0.2;
     
@@ -85,7 +88,7 @@ const ReportsDialog = () => {
     });
   };
 
-  // Função para desenhar gráfico de pizza simples
+  // Função para desenhar gráfico de pizza simples (substituindo triangle por arcos)
   const drawPieChart = (doc: jsPDF, centerX: number, centerY: number, radius: number, data: any[], title: string) => {
     // Título do gráfico
     doc.setFontSize(12);
@@ -95,6 +98,8 @@ const ReportsDialog = () => {
     if (data.length === 0) return;
     
     const total = data.reduce((sum, item) => sum + item.value, 0);
+    if (total === 0) return;
+    
     let currentAngle = 0;
     
     const colors = [
@@ -109,20 +114,23 @@ const ReportsDialog = () => {
       const sliceAngle = (item.value / total) * 360;
       const color = colors[index % colors.length];
       
-      // Desenhar fatia
+      // Desenhar fatia usando linhas (simplificado)
       doc.setFillColor(color[0], color[1], color[2]);
+      doc.setDrawColor(color[0], color[1], color[2]);
       
-      // Criar pontos para a fatia
-      const startAngle = currentAngle * Math.PI / 180;
-      const endAngle = (currentAngle + sliceAngle) * Math.PI / 180;
-      
-      const x1 = centerX + Math.cos(startAngle) * radius;
-      const y1 = centerY + Math.sin(startAngle) * radius;
-      const x2 = centerX + Math.cos(endAngle) * radius;
-      const y2 = centerY + Math.sin(endAngle) * radius;
-      
-      // Desenhar triângulo para simular fatia
-      doc.triangle(centerX, centerY, x1, y1, x2, y2, 'F');
+      const steps = Math.max(3, Math.floor(sliceAngle / 10));
+      for (let i = 0; i < steps; i++) {
+        const angle1 = (currentAngle + (sliceAngle * i / steps)) * Math.PI / 180;
+        const angle2 = (currentAngle + (sliceAngle * (i + 1) / steps)) * Math.PI / 180;
+        
+        const x1 = centerX + Math.cos(angle1) * radius;
+        const y1 = centerY + Math.sin(angle1) * radius;
+        const x2 = centerX + Math.cos(angle2) * radius;
+        const y2 = centerY + Math.sin(angle2) * radius;
+        
+        doc.line(centerX, centerY, x1, y1);
+        doc.line(x1, y1, x2, y2);
+      }
       
       // Label da porcentagem
       const labelAngle = (currentAngle + sliceAngle/2) * Math.PI / 180;
@@ -130,7 +138,7 @@ const ReportsDialog = () => {
       const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
       const percentage = ((item.value / total) * 100).toFixed(1);
       
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(0, 0, 0);
       doc.setFontSize(8);
       doc.text(`${percentage}%`, labelX, labelY, { align: 'center' });
       
@@ -605,7 +613,7 @@ const ReportsDialog = () => {
       checkPageSpace(60);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text('🏆 TOP 5 MAIORES OFENSORES', 20, yPos);
+      doc.text('TOP 5 MAIORES OFENSORES', 20, yPos);
       yPos += 10;
       
       // Calcular consumo por unidade
@@ -631,7 +639,7 @@ const ReportsDialog = () => {
       .slice(0, 5);
       
       consumptionByUnit.forEach((unit, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}º`;
+        const position = `${index + 1}º`;
         
         if (index < 3) {
           doc.setFillColor(255, 248, 220);
@@ -642,7 +650,7 @@ const ReportsDialog = () => {
         
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
-        doc.text(`${medal} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
+        doc.text(`${position} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
         doc.setTextColor(100, 100, 100);
         doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 9);
         
@@ -655,7 +663,7 @@ const ReportsDialog = () => {
       checkPageSpace(40);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
-      doc.text('📊 ESTATÍSTICAS DE ALERTAS', 20, yPos);
+      doc.text('ESTATISTICAS DE ALERTAS', 20, yPos);
       yPos += 10;
       
       const totalUnitsWithAlerts = new Set(
@@ -670,9 +678,9 @@ const ReportsDialog = () => {
       
       const alertStats = [
         `• Unidades com alertas: ${totalUnitsWithAlerts}`,
-        `• Média de alertas por unidade: ${avgAlertsPerUnit}`,
+        `• Media de alertas por unidade: ${avgAlertsPerUnit}`,
         `• Taxa de alertas: ${alertRate}% das leituras`,
-        `• Período de maior incidência: ${format(new Date(), 'MMMM/yyyy', { locale: ptBR })}`
+        `• Periodo de maior incidencia: ${format(new Date(), 'MMMM/yyyy', { locale: ptBR })}`
       ];
       
       doc.setFontSize(10);
@@ -687,15 +695,15 @@ const ReportsDialog = () => {
       checkPageSpace(40);
       doc.setFontSize(12);
       doc.setTextColor(25, 135, 84);
-      doc.text('💡 RECOMENDAÇÕES', 20, yPos);
+      doc.text('RECOMENDACOES', 20, yPos);
       yPos += 10;
       
       const recommendations = [
         '• Realizar auditoria nos maiores consumidores identificados',
-        '• Implementar programa de conscientização sobre consumo sustentável',
-        '• Verificar possíveis vazamentos ou equipamentos defeituosos',
-        '• Estabelecer metas de redução de consumo por edifício',
-        '• Considerar implementação de medidores inteligentes'
+        '• Implementar programa de conscientizacao sobre consumo sustentavel',
+        '• Verificar possiveis vazamentos ou equipamentos defeituosos',
+        '• Estabelecer metas de reducao de consumo por edificio',
+        '• Considerar implementacao de medidores inteligentes'
       ];
       
       doc.setFontSize(10);
@@ -749,7 +757,7 @@ const ReportsDialog = () => {
         const unit = validUnitsData.find(u => u.id === meter?.unitId);
         const building = validBuildingsData.find(b => b.id === unit?.buildingId);
         
-        if (!meter ||!unit || !building) return;
+        if (!meter || !unit || !building) return;
         
         // Alternar cor de fundo
         if (index % 2 === 0) {
