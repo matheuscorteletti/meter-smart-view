@@ -28,8 +28,6 @@ const UserManagement = () => {
     name: '',
     email: '',
     role: '',
-    buildingId: '',
-    unitId: '',
   });
 
   useEffect(() => {
@@ -39,7 +37,7 @@ const UserManagement = () => {
     setBuildings(buildingsData);
     setUnits(unitsData);
 
-    // Usuários demo com detalhes
+    // Usuários demo
     const demoUsers: UserWithDetails[] = [
       {
         id: 'admin-1',
@@ -52,10 +50,6 @@ const UserManagement = () => {
         name: 'João Silva',
         email: 'user@demo.com',
         role: 'user',
-        buildingId: 'building-1013',
-        unitId: 'unit-1013-externo',
-        buildingName: buildingsData.find(b => b.id === 'building-1013')?.name,
-        unitNumber: unitsData.find(u => u.id === 'unit-1013-externo')?.number,
       },
       {
         id: 'viewer-1',
@@ -76,12 +70,6 @@ const UserManagement = () => {
       name: formData.name,
       email: formData.email,
       role: formData.role as 'admin' | 'user' | 'viewer',
-      ...(formData.role === 'user' && {
-        buildingId: formData.buildingId,
-        unitId: formData.unitId,
-        buildingName: buildings.find(b => b.id === formData.buildingId)?.name,
-        unitNumber: units.find(u => u.id === formData.unitId)?.number,
-      }),
     };
 
     setUsers([...users, newUser]);
@@ -90,8 +78,6 @@ const UserManagement = () => {
       name: '',
       email: '',
       role: '',
-      buildingId: '',
-      unitId: '',
     });
     setIsDialogOpen(false);
     
@@ -107,8 +93,6 @@ const UserManagement = () => {
       name: user.name,
       email: user.email,
       role: user.role,
-      buildingId: user.buildingId || '',
-      unitId: user.unitId || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -125,12 +109,6 @@ const UserManagement = () => {
             name: formData.name,
             email: formData.email,
             role: formData.role as 'admin' | 'user' | 'viewer',
-            ...(formData.role === 'user' && {
-              buildingId: formData.buildingId,
-              unitId: formData.unitId,
-              buildingName: buildings.find(b => b.id === formData.buildingId)?.name,
-              unitNumber: units.find(u => u.id === formData.unitId)?.number,
-            }),
           }
         : user
     );
@@ -141,8 +119,6 @@ const UserManagement = () => {
       name: '',
       email: '',
       role: '',
-      buildingId: '',
-      unitId: '',
     });
     setEditingUser(null);
     setIsEditDialogOpen(false);
@@ -152,8 +128,6 @@ const UserManagement = () => {
       description: "Usuário editado com sucesso!",
     });
   };
-
-  const filteredUnits = units.filter(unit => unit.buildingId === formData.buildingId);
 
   const getUserIcon = (role: string) => {
     switch (role) {
@@ -213,7 +187,7 @@ const UserManagement = () => {
       </div>
       <div className="space-y-2">
         <Label htmlFor={isEdit ? "edit-role" : "role"}>Tipo de Usuário</Label>
-        <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value, buildingId: '', unitId: '' })}>
+        <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione o tipo" />
           </SelectTrigger>
@@ -225,48 +199,10 @@ const UserManagement = () => {
         </Select>
       </div>
       
-      {formData.role === 'user' && (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor={isEdit ? "edit-building" : "building"}>Edifício</Label>
-            <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value, unitId: '' })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um edifício" />
-              </SelectTrigger>
-              <SelectContent>
-                {buildings.map((building) => (
-                  <SelectItem key={building.id} value={building.id}>
-                    {building.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {formData.buildingId && (
-            <div className="space-y-2">
-              <Label htmlFor={isEdit ? "edit-unit" : "unit"}>Unidade</Label>
-              <Select value={formData.unitId} onValueChange={(value) => setFormData({ ...formData, unitId: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma unidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredUnits.map((unit) => (
-                    <SelectItem key={unit.id} value={unit.id}>
-                      Unidade {unit.number} - Andar {unit.floor}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-        </>
-      )}
-      
       <Button 
         type="submit" 
         className="w-full" 
-        disabled={!formData.role || (formData.role === 'user' && (!formData.buildingId || !formData.unitId))}
+        disabled={!formData.role}
       >
         {isEdit ? 'Salvar Alterações' : 'Cadastrar Usuário'}
       </Button>
@@ -338,13 +274,6 @@ const UserManagement = () => {
                 <Badge variant={user.role === 'admin' ? 'default' : user.role === 'viewer' ? 'secondary' : 'outline'}>
                   {getRoleLabel(user.role)}
                 </Badge>
-                
-                {user.role === 'user' && user.buildingName && (
-                  <div className="text-sm text-gray-600">
-                    <p><strong>Edifício:</strong> {user.buildingName}</p>
-                    {user.unitNumber && <p><strong>Unidade:</strong> {user.unitNumber}</p>}
-                  </div>
-                )}
                 
                 {user.role === 'viewer' && (
                   <div className="text-sm text-gray-600">
