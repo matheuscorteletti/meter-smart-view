@@ -52,8 +52,8 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     }
 
     // Check digits count if defined
-    if (meter.digits && value.length !== meter.digits) {
-      setError(`O valor deve conter exatamente ${meter.digits} dígitos`);
+    if (meter.totalDigits && value.length !== meter.totalDigits) {
+      setError(`O valor deve conter exatamente ${meter.totalDigits} dígitos`);
       return;
     }
   };
@@ -75,8 +75,8 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       return;
     }
 
-    if (meter.digits && reading.length !== meter.digits) {
-      setError(`O valor deve conter exatamente ${meter.digits} dígitos`);
+    if (meter.totalDigits && reading.length !== meter.totalDigits) {
+      setError(`O valor deve conter exatamente ${meter.totalDigits} dígitos`);
       return;
     }
 
@@ -134,8 +134,8 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
               />
               <div className="text-sm text-gray-600">
                 <p>Leitura anterior: <strong>{currentReading.toLocaleString('pt-BR')}</strong></p>
-                {meter.digits && (
-                  <p>Deve conter exatamente <strong>{meter.digits} dígitos</strong></p>
+                {meter.totalDigits && (
+                  <p>Deve conter exatamente <strong>{meter.totalDigits} dígitos</strong></p>
                 )}
               </div>
               {error && (
