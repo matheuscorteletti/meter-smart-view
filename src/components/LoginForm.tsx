@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building2, Lock, Mail, Shield } from 'lucide-react';
+import { Building2, Lock, Mail } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -97,21 +97,6 @@ const LoginForm = () => {
                 {isLoading ? 'Entrando...' : 'Entrar'}
               </Button>
             </form>
-
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm font-semibold text-blue-800 mb-2 flex items-center">
-                <Shield className="w-4 h-4 mr-2" />
-                Credenciais de demonstração:
-              </p>
-              <div className="space-y-1 text-sm text-blue-700">
-                <p><strong>Admin:</strong> admin@demo.com / admin123</p>
-                <p><strong>Usuário:</strong> user@demo.com / user123</p>
-                <p><strong>Visualizador:</strong> viewer@demo.com / viewer123</p>
-              </div>
-              <p className="text-xs text-blue-600 mt-2">
-                * Senhas devem ter pelo menos 6 caracteres
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

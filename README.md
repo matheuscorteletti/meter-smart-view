@@ -50,6 +50,53 @@ chmod +x docker-dev.sh
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:3001
 
+## 🔐 Credenciais de Acesso
+
+### Contas de Demonstração
+- **Admin**: admin@demo.com / admin123
+- **Usuário**: user@demo.com / user123  
+- **Visualizador**: viewer@demo.com / viewer123
+
+**Nota**: Senhas devem ter pelo menos 6 caracteres
+
+### Comandos Administrativos
+
+#### Criar Novo Usuário Administrador
+```sql
+-- Conectar ao MySQL
+mysql -u root -p
+
+-- Usar banco de dados
+USE meter;
+
+-- Criar novo administrador (substitua os dados)
+INSERT INTO users (id, name, email, password_hash, role) VALUES 
+(UUID(), 'Seu Nome', 'seu@email.com', '$2b$10$hash_da_senha_aqui', 'admin');
+```
+
+#### Resetar Senha do Admin (Emergência)
+```sql
+-- Para resetar senha do admin principal
+-- Primeiro gere o hash da nova senha em: https://bcrypt-generator.com/
+-- Use 10 rounds de criptografia
+
+UPDATE users 
+SET password_hash = '$2b$10$NOVO_HASH_AQUI' 
+WHERE email = 'admin@demo.com';
+
+-- Exemplo com senha "novasenha123":
+UPDATE users 
+SET password_hash = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' 
+WHERE email = 'admin@demo.com';
+```
+
+#### Listar Todos os Administradores
+```sql
+SELECT id, name, email, role, created_at 
+FROM users 
+WHERE role = 'admin';
+```
+
 ## 📚 Documentação Completa
 
 Consulte o [Guia de Instalação Completo](install/README.md) para:
@@ -67,11 +114,6 @@ Consulte o [Guia de Instalação Completo](install/README.md) para:
 ./docker-dev.sh status   # Status dos containers
 ./docker-dev.sh clean    # Limpar ambiente
 ```
-
-## 🔐 Acesso Padrão
-
-- **Email**: admin@medidores.local
-- **Senha**: [configurar após instalação]
 
 ## 🛠️ Desenvolvimento
 
