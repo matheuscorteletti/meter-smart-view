@@ -2,13 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Home, Zap, Droplets, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Building2, Home, Zap, Droplets, AlertTriangle, TrendingUp, Users, Clock } from 'lucide-react';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import BuildingManagement from './BuildingManagement';
 import UnitManagement from './UnitManagement';
 import MeterManagement from './MeterManagement';
 import UserManagement from './UserManagement';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -19,7 +19,7 @@ const AdminDashboard = () => {
   });
 
   const [consumptionData, setConsumptionData] = useState([]);
-  const [meterTypeData, setMeterTypeData] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     const buildings = getBuildings();
@@ -49,14 +49,16 @@ const AdminDashboard = () => {
 
     setConsumptionData(chartData);
 
-    // Dados para gráfico de tipos de medidor
-    const waterMeters = meters.filter(m => m.type === 'water').length;
-    const energyMeters = meters.filter(m => m.type === 'energy').length;
+    // Atividades recentes simuladas
+    const activities = [
+      { type: 'reading', message: 'Nova leitura registrada - Edifício Central, Apt 101', time: '5 min atrás', icon: Clock },
+      { type: 'alert', message: 'Consumo alto detectado - Edifício Norte, Apt 205', time: '12 min atrás', icon: AlertTriangle },
+      { type: 'user', message: 'Novo usuário cadastrado - Maria Silva', time: '1 hora atrás', icon: Users },
+      { type: 'reading', message: 'Leitura atualizada - Edifício Sul, Apt 303', time: '2 horas atrás', icon: Clock },
+      { type: 'alert', message: 'Alerta resolvido - Edifício Central, Apt 102', time: '3 horas atrás', icon: AlertTriangle },
+    ];
 
-    setMeterTypeData([
-      { name: 'Água', value: waterMeters, color: '#3B82F6' },
-      { name: 'Energia', value: energyMeters, color: '#10B981' },
-    ]);
+    setRecentActivity(activities);
   }, []);
 
   const StatCard = ({ title, value, icon: Icon, color, description }) => (
@@ -73,6 +75,15 @@ const AdminDashboard = () => {
       </CardContent>
     </Card>
   );
+
+  const getActivityColor = (type: string) => {
+    switch (type) {
+      case 'alert': return 'text-red-600';
+      case 'user': return 'text-blue-600';
+      case 'reading': return 'text-green-600';
+      default: return 'text-gray-600';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -140,31 +151,32 @@ const AdminDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <Droplets className="w-5 h-5" />
-              <span>Distribuição de Medidores</span>
+              <Clock className="w-5 h-5" />
+              <span>Atividades Recentes</span>
             </CardTitle>
-            <CardDescription>Tipos de medidores no sistema</CardDescription>
+            <CardDescription>Últimas ações no sistema</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={meterTypeData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {meterTypeData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4 max-h-[300px] overflow-y-auto">
+              {recentActivity.map((activity, index) => {
+                const ActivityIcon = activity.icon;
+                return (
+                  <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div className={`w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm`}>
+                      <ActivityIcon className={`w-4 h-4 ${getActivityColor(activity.type)}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {activity.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {activity.time}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
