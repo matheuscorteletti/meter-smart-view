@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -58,11 +59,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <h1 className="text-xl font-bold text-gray-900">Sistema de Medidores</h1>
                 <p className="text-sm text-gray-600">
                   {getRoleLabel(user?.role || 'user')}
-                  {isAdminSwitched && (
-                    <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                      Admin simulando
-                    </span>
-                  )}
                 </p>
               </div>
             </div>
@@ -73,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   variant="outline"
                   size="sm"
                   onClick={() => switchProfile('admin')}
-                  className="flex items-center space-x-2 text-red-600 border-red-200 hover:bg-red-50"
+                  className="hidden sm:flex items-center space-x-2 text-red-600 border-red-200 hover:bg-red-50"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Voltar Admin</span>
@@ -108,8 +104,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                       <p className="font-medium">{user?.name}</p>
                       <p className="text-xs text-gray-500">
                         {getRoleLabel(user?.role || 'user')}
-                        {isAdminSwitched && <span className="text-orange-600"> (Admin)</span>}
                       </p>
+                      {isAdminSwitched && (
+                        <p className="text-xs text-orange-600 font-medium">
+                          Admin simulando
+                        </p>
+                      )}
                     </div>
                   </DropdownMenuItem>
                   
