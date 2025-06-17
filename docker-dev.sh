@@ -2,13 +2,12 @@
 #!/bin/bash
 
 # Script para gerenciar o ambiente Docker de desenvolvimento
+# Conectando com banco externo em 192.168.100.240
 
 case "$1" in
   "up")
     echo "🚀 Iniciando ambiente de desenvolvimento..."
-    docker-compose up -d database
-    echo "⏳ Aguardando banco de dados..."
-    sleep 15
+    echo "📡 Conectando com banco externo: 192.168.100.240"
     docker-compose up frontend phpmyadmin
     ;;
   "down")
@@ -18,23 +17,31 @@ case "$1" in
   "logs")
     docker-compose logs -f
     ;;
-  "db-only")
-    echo "💾 Iniciando apenas o banco de dados..."
-    docker-compose up -d database phpmyadmin
+  "phpmyadmin")
+    echo "💾 Iniciando apenas o phpMyAdmin..."
+    docker-compose up -d phpmyadmin
+    ;;
+  "frontend-only")
+    echo "🎨 Iniciando apenas o frontend..."
+    docker-compose up frontend
     ;;
   "clean")
-    echo "🧹 Limpando containers e volumes..."
-    docker-compose down -v
+    echo "🧹 Limpando containers..."
+    docker-compose down
     docker system prune -f
     ;;
   *)
-    echo "Uso: $0 {up|down|logs|db-only|clean}"
+    echo "Uso: $0 {up|down|logs|phpmyadmin|frontend-only|clean}"
     echo ""
     echo "Comandos disponíveis:"
-    echo "  up      - Inicia todo o ambiente"
-    echo "  down    - Para o ambiente"
-    echo "  logs    - Mostra logs em tempo real"
-    echo "  db-only - Inicia apenas banco + phpMyAdmin"
-    echo "  clean   - Remove containers e volumes"
+    echo "  up           - Inicia frontend + phpMyAdmin"
+    echo "  down         - Para o ambiente"
+    echo "  logs         - Mostra logs em tempo real"
+    echo "  phpmyadmin   - Inicia apenas phpMyAdmin"
+    echo "  frontend-only- Inicia apenas frontend"
+    echo "  clean        - Remove containers"
+    echo ""
+    echo "💡 Lembre-se de definir DB_PASSWORD como variável de ambiente:"
+    echo "   export DB_PASSWORD=sua_senha_do_banco"
     ;;
 esac

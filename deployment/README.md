@@ -1,19 +1,20 @@
 
 # Deploy na Infraestrutura Interna
 
-Este guia explica como fazer o deploy desta aplicação na sua infraestrutura interna.
+Este guia explica como fazer o deploy desta aplicação conectando com banco externo.
 
 ## Estrutura da Aplicação
 
 - **Frontend**: React + Vite + TypeScript
 - **Backend**: APIs REST (a implementar)
-- **Banco**: MySQL 8.0 separado
+- **Banco**: MySQL externo em 192.168.100.240
 
 ## Ambiente de Desenvolvimento com Docker
 
 ### Pré-requisitos
 - Docker e Docker Compose instalados
 - Git instalado
+- Acesso ao banco MySQL em 192.168.100.240
 
 ### Configuração Rápida
 
@@ -22,10 +23,13 @@ Este guia explica como fazer o deploy desta aplicação na sua infraestrutura in
 git clone [seu-repositorio-url]
 cd [nome-do-projeto]
 
-# 2. Torne o script executável (Linux/Mac)
+# 2. Configure a senha do banco
+export DB_PASSWORD=sua_senha_do_met
+
+# 3. Torne o script executável (Linux/Mac)
 chmod +x docker-dev.sh
 
-# 3. Inicie o ambiente
+# 4. Inicie o ambiente
 ./docker-dev.sh up
 ```
 
@@ -35,17 +39,22 @@ Após executar `./docker-dev.sh up`:
 
 - **Frontend**: http://localhost:3000
 - **Backend**: http://localhost:3001 (quando implementar)
-- **MySQL**: localhost:3306
-- **phpMyAdmin**: http://localhost:8080
+- **phpMyAdmin**: http://localhost:8080 (conecta no banco externo)
 
 ### Comandos Úteis
 
 ```bash
-# Iniciar todo ambiente
+# Definir senha do banco
+export DB_PASSWORD=sua_senha_do_met
+
+# Iniciar frontend + phpMyAdmin
 ./docker-dev.sh up
 
-# Iniciar apenas banco + phpMyAdmin
-./docker-dev.sh db-only
+# Iniciar apenas phpMyAdmin
+./docker-dev.sh phpmyadmin
+
+# Iniciar apenas frontend
+./docker-dev.sh frontend-only
 
 # Ver logs em tempo real
 ./docker-dev.sh logs
@@ -53,59 +62,45 @@ Após executar `./docker-dev.sh up`:
 # Parar ambiente
 ./docker-dev.sh down
 
-# Limpar tudo (containers e dados)
+# Limpar containers
 ./docker-dev.sh clean
 ```
 
-### Credenciais do Banco
+### Configuração do Banco Externo
 
-- **Host**: localhost (ou 'database' dentro do Docker)
+- **Host**: 192.168.100.240
 - **Porta**: 3306
-- **Database**: meter_system
-- **Usuário**: root
-- **Senha**: password123
-- **Usuário App**: meter_user / meter_pass
+- **Database**: meter
+- **Usuário**: met
+- **Senha**: [definir via DB_PASSWORD]
+
+### Estrutura do Banco
+
+Execute o script `deployment/init.sql` no seu banco MySQL externo para criar as tabelas necessárias.
 
 ## Próximos Passos
 
-### 1. Testar o Frontend
+### 1. Configurar o Banco
+Execute o script SQL no banco externo:
+```bash
+mysql -h 192.168.100.240 -u met -p meter < deployment/init.sql
+```
+
+### 2. Testar o Frontend
 O frontend já funciona com dados de exemplo (localStorage).
 
-### 2. Implementar Backend
-Crie a pasta `backend/` com suas APIs REST:
+### 3. Implementar Backend
+Crie a pasta `backend/` com suas APIs REST conectando no banco externo.
 
-```bash
-mkdir backend
-cd backend
-npm init -y
-# ... implementar APIs
-```
-
-### 3. Conectar Frontend às APIs
+### 4. Conectar Frontend às APIs
 Modifique o frontend para usar as APIs ao invés do localStorage.
-
-### 4. Deploy em Produção
-Use o `Dockerfile` original para produção com nginx.
-
-## Estrutura de Pastas Recomendada
-
-```
-projeto/
-├── src/                 # Frontend React
-├── backend/            # APIs (a criar)
-├── deployment/         # Configs de deploy
-├── docker-compose.yml  # Ambiente desenvolvimento
-├── Dockerfile         # Build produção
-├── Dockerfile.dev     # Build desenvolvimento
-└── docker-dev.sh      # Script helper
-```
 
 ## Suporte
 
 Se precisar de ajuda com:
+- Configuração do banco externo
 - Implementação do backend
 - Conexão frontend com APIs
-- Configuração de produção
 - Problemas com Docker
 
 Basta perguntar!

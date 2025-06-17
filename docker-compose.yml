@@ -1,6 +1,6 @@
 
 # Docker Compose para ambiente de desenvolvimento
-# Banco de dados separado e serviços bem organizados
+# Conectando com banco de dados externo
 
 version: '3.8'
 
@@ -35,61 +35,29 @@ services:
     command: sh -c "npm install && npm run dev"
     environment:
       - NODE_ENV=development
-      - DB_HOST=database
+      - DB_HOST=192.168.100.240
       - DB_PORT=3306
-      - DB_NAME=meter_system
-      - DB_USER=root
-      - DB_PASSWORD=password123
+      - DB_NAME=meter
+      - DB_USER=met
+      - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=seu_jwt_secret_muito_seguro_aqui
       - PORT=3001
-    depends_on:
-      database:
-        condition: service_healthy
     networks:
       - meter-network
 
-  # Banco MySQL separado
-  database:
-    image: mysql:8.0
-    container_name: meter-mysql
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: password123
-      MYSQL_DATABASE: meter_system
-      MYSQL_USER: meter_user
-      MYSQL_PASSWORD: meter_pass
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./deployment/init.sql:/docker-entrypoint-initdb.d/01-init.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 5s
-      retries: 10
-      interval: 10s
-    networks:
-      - meter-network
-    restart: unless-stopped
-
-  # phpMyAdmin para gerenciar o banco (opcional)
+  # phpMyAdmin para gerenciar o banco externo (opcional)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: meter-phpmyadmin
     ports:
       - "8080:80"
     environment:
-      PMA_HOST: database
+      PMA_HOST: 192.168.100.240
       PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: password123
-    depends_on:
-      - database
+      PMA_USER: met
+      PMA_PASSWORD: ${DB_PASSWORD}
     networks:
       - meter-network
-
-volumes:
-  mysql_data:
-    driver: local
 
 networks:
   meter-network:
