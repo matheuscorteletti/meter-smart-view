@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +11,24 @@ import { getBuildings, getUnits, getMeters, saveMeters } from '@/lib/storage';
 import { Zap, Droplets, Plus, AlertTriangle, Building2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+interface MeterWithDetails extends Meter {
+  unitNumber: string;
+  buildingId: string;
+  buildingName: string;
+}
+
+interface MetersByBuildingType {
+  [key: string]: {
+    building: Building;
+    meters: MeterWithDetails[];
+  };
+}
+
 const MeterManagement = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
-  const [meters, setMeters] = useState<Meter[]>([]);
-  const [metersByBuilding, setMetersByBuilding] = useState<{ [key: string]: any[] }>({});
+  const [meters, setMeters] = useState<MeterWithDetails[]>([]);
+  const [metersByBuilding, setMetersByBuilding] = useState<MetersByBuildingType>({});
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     unitId: '',
@@ -36,7 +48,7 @@ const MeterManagement = () => {
     setUnits(unitsData);
     
     // Adicionar informações da unidade e edifício aos medidores
-    const metersWithDetails = metersData.map(meter => {
+    const metersWithDetails: MeterWithDetails[] = metersData.map(meter => {
       const unit = unitsData.find(u => u.id === meter.unitId);
       const building = buildingsData.find(b => b.id === unit?.buildingId);
       return {
@@ -50,7 +62,7 @@ const MeterManagement = () => {
     setMeters(metersWithDetails);
 
     // Agrupar medidores por edifício
-    const grouped = buildingsData.reduce((acc, building) => {
+    const grouped: MetersByBuildingType = buildingsData.reduce((acc, building) => {
       const buildingMeters = metersWithDetails.filter(meter => meter.buildingId === building.id);
       if (buildingMeters.length > 0) {
         acc[building.id] = {
@@ -59,7 +71,7 @@ const MeterManagement = () => {
         };
       }
       return acc;
-    }, {} as { [key: string]: any });
+    }, {} as MetersByBuildingType);
 
     setMetersByBuilding(grouped);
   }, []);
@@ -80,7 +92,7 @@ const MeterManagement = () => {
     const updatedMeters = [...meters.filter(m => !m.unitNumber && !m.buildingName), newMeter];
     
     // Adicionar informações da unidade e edifício
-    const metersWithDetails = updatedMeters.map(meter => {
+    const metersWithDetails: MeterWithDetails[] = updatedMeters.map(meter => {
       const unit = units.find(u => u.id === meter.unitId);
       const building = buildings.find(b => b.id === unit?.buildingId);
       return {
@@ -95,7 +107,7 @@ const MeterManagement = () => {
     saveMeters(updatedMeters);
 
     // Reagrupar medidores por edifício
-    const grouped = buildings.reduce((acc, building) => {
+    const grouped: MetersByBuildingType = buildings.reduce((acc, building) => {
       const buildingMeters = metersWithDetails.filter(meter => meter.buildingId === building.id);
       if (buildingMeters.length > 0) {
         acc[building.id] = {
@@ -104,7 +116,7 @@ const MeterManagement = () => {
         };
       }
       return acc;
-    }, {} as { [key: string]: any });
+    }, {} as MetersByBuildingType);
 
     setMetersByBuilding(grouped);
     
