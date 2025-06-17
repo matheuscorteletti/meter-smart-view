@@ -25,7 +25,6 @@ const ReportsDialog = () => {
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [reportOptions, setReportOptions] = useState({
-    includeCharts: true,
     includeSummary: true,
     includeDetails: true,
     includeAlerts: true,
@@ -99,79 +98,223 @@ const ReportsDialog = () => {
       .reduce((sum, r) => sum + r.consumption, 0);
 
     const alerts = filteredReadings.filter(r => r.isAlert).length;
+    const totalReadings = filteredReadings.length;
+    const activeMeters = metersData.filter(m => m.isActive !== false).length;
 
     // Gerar PDF usando jsPDF
     const doc = new jsPDF();
+    let yPos = 30;
     
-    // Título
-    doc.setFontSize(20);
-    doc.text('Relatório de Consumo', 20, 30);
+    // Função para adicionar nova página se necessário
+    const checkPageSpace = (neededSpace: number) => {
+      if (yPos + neededSpace > 280) {
+        doc.addPage();
+        yPos = 30;
+      }
+    };
+
+    // Cabeçalho
+    doc.setFontSize(22);
+    doc.setTextColor(44, 62, 80);
+    doc.text('RELATÓRIO DE CONSUMO', 105, yPos, { align: 'center' });
+    yPos += 15;
     
-    // Período
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Gerado em: ${format(now, 'dd/MM/yyyy HH:mm:ss')}`, 105, yPos, { align: 'center' });
+    yPos += 20;
+
+    // Informações de Filtros
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('INFORMAÇÕES DO RELATÓRIO', 20, yPos);
+    yPos += 15;
+
+    // Caixa de informações
+    doc.setDrawColor(200, 200, 200);
+    doc.rect(20, yPos - 5, 170, 30);
+    
+    doc.setFontSize(10);
     const periodText = selectedPeriod === 'custom' && startDate && endDate
       ? `${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`
       : `Últimos ${selectedPeriod} dias`;
-    doc.setFontSize(12);
-    doc.text(`Período: ${periodText}`, 20, 45);
     
-    // Edifício e Unidade
     const buildingText = selectedBuilding === 'all' 
       ? 'Todos os Edifícios' 
       : buildingsData.find(b => b.id === selectedBuilding)?.name || 'N/A';
+    
     const unitText = selectedUnit === 'all'
       ? 'Todas as Unidades'
       : `Unidade ${unitsData.find(u => u.id === selectedUnit)?.number || 'N/A'}`;
     
-    doc.text(`Edifício: ${buildingText}`, 20, 55);
-    doc.text(`Unidade: ${unitText}`, 20, 65);
-    
-    // Resumo
+    doc.text(`Período: ${periodText}`, 25, yPos + 5);
+    doc.text(`Edifício: ${buildingText}`, 25, yPos + 12);
+    doc.text(`Unidade: ${unitText}`, 25, yPos + 19);
+    yPos += 40;
+
+    // Resumo Executivo
     if (reportOptions.includeSummary) {
+      checkPageSpace(50);
+      
       doc.setFontSize(14);
-      doc.text('Resumo Executivo', 20, 85);
+      doc.setTextColor(0, 0, 0);
+      doc.text('RESUMO EXECUTIVO', 20, yPos);
+      yPos += 15;
+      
+      // Tabela de resumo
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(20, yPos - 5, 170, 40);
+      
+      // Cabeçalhos da tabela
+      doc.setFillColor(240, 240, 240);
+      doc.rect(20, yPos - 5, 85, 10, 'F');
+      doc.rect(105, yPos - 5, 85, 10, 'F');
+      
       doc.setFontSize(10);
-      doc.text(`Consumo Total de Água: ${totalWater.toFixed(1)} L`, 20, 100);
-      doc.text(`Consumo Total de Energia: ${totalEnergy.toFixed(1)} kWh`, 20, 110);
-      doc.text(`Total de Alertas: ${alerts}`, 20, 120);
-      doc.text(`Total de Leituras: ${filteredReadings.length}`, 20, 130);
+      doc.setTextColor(0, 0, 0);
+      doc.text('MÉTRICA', 22, yPos + 2);
+      doc.text('VALOR', 107, yPos + 2);
+      yPos += 12;
+      
+      // Dados do resumo
+      const summaryData = [
+        ['Consumo Total de Água', `${totalWater.toFixed(1)} L`],
+        ['Consumo Total de Energia', `${totalEnergy.toFixed(1)} kWh`],
+        ['Total de Alertas', alerts.toString()],
+        ['Total de Leituras', totalReadings.toString()],
+        ['Medidores Ativos', activeMeters.toString()]
+      ];
+      
+      summaryData.forEach(([metric, value], index) => {
+        if (index % 2 === 0) {
+          doc.setFillColor(250, 250, 250);
+          doc.rect(20, yPos - 2, 170, 8, 'F');
+        }
+        doc.text(metric, 22, yPos + 2);
+        doc.text(value, 107, yPos + 2);
+        yPos += 8;
+      });
+      
+      yPos += 15;
     }
-    
-    // Detalhes
-    if (reportOptions.includeDetails && filteredReadings.length > 0) {
+
+    // Análise de Alertas
+    if (reportOptions.includeAlerts && alerts > 0) {
+      checkPageSpace(40);
+      
       doc.setFontSize(14);
-      doc.text('Dados Detalhados', 20, 150);
-      doc.setFontSize(8);
+      doc.text('ANÁLISE DE ALERTAS', 20, yPos);
+      yPos += 15;
       
-      let yPos = 165;
-      doc.text('Data', 20, yPos);
-      doc.text('Tipo', 50, yPos);
-      doc.text('Leitura', 80, yPos);
-      doc.text('Consumo', 110, yPos);
-      doc.text('Alerta', 140, yPos);
+      const alertReadings = filteredReadings.filter(r => r.isAlert);
       
-      filteredReadings.slice(0, 20).forEach((reading, index) => {
-        const meter = metersData.find(m => m.id === reading.meterId);
-        yPos += 10;
+      doc.setFontSize(10);
+      doc.text(`Foram identificados ${alerts} alertas de consumo elevado no período.`, 20, yPos);
+      yPos += 8;
+      
+      if (alertReadings.length > 0) {
+        const waterAlerts = alertReadings.filter(r => 
+          metersData.find(m => m.id === r.meterId)?.type === 'water'
+        ).length;
+        const energyAlerts = alertReadings.filter(r => 
+          metersData.find(m => m.id === r.meterId)?.type === 'energy'
+        ).length;
         
-        if (yPos > 280) {
-          doc.addPage();
-          yPos = 30;
+        doc.text(`• Alertas de Água: ${waterAlerts}`, 25, yPos);
+        yPos += 6;
+        doc.text(`• Alertas de Energia: ${energyAlerts}`, 25, yPos);
+        yPos += 15;
+      }
+    }
+
+    // Dados Detalhados
+    if (reportOptions.includeDetails && filteredReadings.length > 0) {
+      checkPageSpace(60);
+      
+      doc.setFontSize(14);
+      doc.text('DADOS DETALHADOS', 20, yPos);
+      yPos += 15;
+      
+      // Cabeçalho da tabela
+      doc.setFillColor(52, 73, 94);
+      doc.rect(20, yPos - 5, 170, 10, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text('Data', 22, yPos);
+      doc.text('Edifício', 40, yPos);
+      doc.text('Unidade', 70, yPos);
+      doc.text('Tipo', 90, yPos);
+      doc.text('Leitura', 110, yPos);
+      doc.text('Consumo', 130, yPos);
+      doc.text('Limite', 150, yPos);
+      doc.text('Alerta', 170, yPos);
+      yPos += 8;
+      
+      doc.setTextColor(0, 0, 0);
+      
+      // Mostrar até 25 leituras mais recentes
+      const sortedReadings = filteredReadings
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 25);
+      
+      sortedReadings.forEach((reading, index) => {
+        checkPageSpace(8);
+        
+        const meter = metersData.find(m => m.id === reading.meterId);
+        const unit = unitsData.find(u => u.id === meter?.unitId);
+        const building = buildingsData.find(b => b.id === unit?.buildingId);
+        
+        if (!meter || !unit || !building) return;
+        
+        // Alternar cor de fundo
+        if (index % 2 === 0) {
+          doc.setFillColor(248, 249, 250);
+          doc.rect(20, yPos - 2, 170, 6, 'F');
         }
         
-        doc.text(format(new Date(reading.date), 'dd/MM/yyyy'), 20, yPos);
-        doc.text(meter?.type === 'water' ? 'Água' : 'Energia', 50, yPos);
-        doc.text(reading.reading.toString(), 80, yPos);
-        doc.text(reading.consumption.toFixed(1), 110, yPos);
-        doc.text(reading.isAlert ? 'Sim' : 'Não', 140, yPos);
+        // Destacar alertas
+        if (reading.isAlert) {
+          doc.setFillColor(254, 242, 242);
+          doc.rect(20, yPos - 2, 170, 6, 'F');
+        }
+        
+        doc.setFontSize(7);
+        doc.text(format(new Date(reading.date), 'dd/MM/yy'), 22, yPos + 2);
+        doc.text(building.name.substring(0, 12), 40, yPos + 2);
+        doc.text(unit.number.substring(0, 8), 70, yPos + 2);
+        doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
+        doc.text(reading.reading.toString(), 110, yPos + 2);
+        doc.text(reading.consumption.toFixed(1), 130, yPos + 2);
+        doc.text(meter.threshold?.toString() || 'N/A', 150, yPos + 2);
+        doc.text(reading.isAlert ? 'SIM' : 'Não', 170, yPos + 2);
+        
+        yPos += 6;
       });
+      
+      if (filteredReadings.length > 25) {
+        yPos += 5;
+        doc.setFontSize(8);
+        doc.text(`... e mais ${filteredReadings.length - 25} leituras não exibidas`, 20, yPos);
+      }
+    }
+
+    // Rodapé
+    const totalPages = doc.internal.pages.length - 1;
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Página ${i} de ${totalPages}`, 105, 290, { align: 'center' });
+      doc.text('Sistema de Gestão de Consumo', 20, 290);
     }
     
     // Salvar PDF
-    doc.save(`relatorio-consumo-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    doc.save(`relatorio-consumo-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
 
     toast({
       title: "Relatório PDF gerado",
-      description: "O relatório foi gerado e baixado com sucesso!",
+      description: "O relatório completo foi gerado e baixado com sucesso!",
     });
 
     setIsOpen(false);
