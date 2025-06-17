@@ -101,6 +101,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           unitId: 'unit-1013-externo',
         }
       },
+      'viewer@demo.com': {
+        passwordHash: hashPassword('viewer123'),
+        user: {
+          id: 'viewer-1',
+          name: 'Maria Santos',
+          email: 'viewer@demo.com',
+          role: 'viewer' as const,
+        }
+      },
     };
 
     const credential = validCredentials[email as keyof typeof validCredentials];

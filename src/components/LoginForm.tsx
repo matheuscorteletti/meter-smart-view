@@ -106,6 +106,7 @@ const LoginForm = () => {
               <div className="space-y-1 text-sm text-blue-700">
                 <p><strong>Admin:</strong> admin@demo.com / admin123</p>
                 <p><strong>Usuário:</strong> user@demo.com / user123</p>
+                <p><strong>Visualizador:</strong> viewer@demo.com / viewer123</p>
               </div>
               <p className="text-xs text-blue-600 mt-2">
                 * Senhas devem ter pelo menos 6 caracteres
