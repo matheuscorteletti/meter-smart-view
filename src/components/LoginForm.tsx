@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building2, Lock, Mail } from 'lucide-react';
+import { Building2, Lock, Mail, Shield } from 'lucide-react';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -20,10 +20,10 @@ const LoginForm = () => {
     setError('');
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const result = await login(email, password);
     
-    if (!success) {
-      setError('Credenciais inválidas. Tente novamente.');
+    if (!result.success) {
+      setError(result.error || 'Erro ao fazer login');
     }
     
     setIsLoading(false);
@@ -78,6 +78,7 @@ const LoginForm = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     required
+                    minLength={6}
                   />
                 </div>
               </div>
@@ -98,11 +99,17 @@ const LoginForm = () => {
             </form>
 
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm font-semibold text-blue-800 mb-2">Credenciais de demonstração:</p>
+              <p className="text-sm font-semibold text-blue-800 mb-2 flex items-center">
+                <Shield className="w-4 h-4 mr-2" />
+                Credenciais de demonstração:
+              </p>
               <div className="space-y-1 text-sm text-blue-700">
-                <p><strong>Admin:</strong> admin@demo.com / demo123</p>
-                <p><strong>Usuário:</strong> user@demo.com / demo123</p>
+                <p><strong>Admin:</strong> admin@demo.com / admin123</p>
+                <p><strong>Usuário:</strong> user@demo.com / user123</p>
               </div>
+              <p className="text-xs text-blue-600 mt-2">
+                * Senhas devem ter pelo menos 6 caracteres
+              </p>
             </div>
           </CardContent>
         </Card>
