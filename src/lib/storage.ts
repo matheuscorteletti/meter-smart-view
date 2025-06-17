@@ -1,4 +1,3 @@
-
 // Local storage utilities for data persistence
 import { User, Building, Unit, Meter, Reading } from '@/types';
 
@@ -62,6 +61,16 @@ export const saveReadings = (readings: Reading[]) => {
 export const getReadings = (): Reading[] => {
   const readings = localStorage.getItem(STORAGE_KEYS.READINGS);
   return readings ? JSON.parse(readings) : [];
+};
+
+export const addReading = (reading: Omit<Reading, 'id'>) => {
+  const readings = getReadings();
+  const newReading = {
+    ...reading,
+    id: Date.now().toString()
+  };
+  readings.push(newReading);
+  localStorage.setItem('readings', JSON.stringify(readings));
 };
 
 // Generate sample data for demonstration

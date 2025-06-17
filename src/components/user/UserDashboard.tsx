@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
 import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
-import { Building2, Droplets, Zap, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, ArrowLeft } from 'lucide-react';
+import BuildingSelector from './BuildingSelector';
+import EditReadingDialog from './EditReadingDialog';
 
 interface MeterWithDetails extends Meter {
   unitNumber: string;
@@ -16,16 +18,11 @@ const UserDashboard = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string>('');
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
-  const [readings, setReadings] = useState<Reading[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const buildingsData = getBuildings();
     setBuildings(buildingsData);
-    
-    // Selecionar primeiro prédio por padrão
-    if (buildingsData.length > 0 && !selectedBuildingId) {
-      setSelectedBuildingId(buildingsData[0].id);
-    }
   }, []);
 
   useEffect(() => {
@@ -34,15 +31,13 @@ const UserDashboard = () => {
     const unitsData = getUnits();
     const metersData = getMeters();
     const readingsData = getReadings();
-    
-    setReadings(readingsData);
 
     // Filtrar unidades do prédio selecionado
     const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
     
     // Filtrar medidores das unidades do prédio
     const buildingMeters = metersData.filter(meter => 
-      buildingUnits.some(unit => unit.id === meter.unitId)
+      buildingUnits.some(unit => unit.id === meter.unitId) && meter.isActive !== false
     );
 
     // Adicionar informações da unidade aos medidores
@@ -60,7 +55,19 @@ const UserDashboard = () => {
     });
     
     setMeters(metersWithDetails);
-  }, [selectedBuildingId]);
+  }, [selectedBuildingId, refreshTrigger]);
+
+  const handleSelectBuilding = (buildingId: string) => {
+    setSelectedBuildingId(buildingId);
+  };
+
+  const handleBackToSelection = () => {
+    setSelectedBuildingId('');
+  };
+
+  const handleReadingAdded = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const getMeterIcon = (type: string) => {
     return type === 'water' ? Droplets : Zap;
@@ -74,30 +81,23 @@ const UserDashboard = () => {
 
   const selectedBuilding = buildings.find(b => b.id === selectedBuildingId);
 
+  // Se não há prédio selecionado, mostrar tela de seleção
+  if (!selectedBuildingId) {
+    return <BuildingSelector buildings={buildings} onSelectBuilding={handleSelectBuilding} />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
-          <p className="text-gray-600">Monitore seus medidores e consumo</p>
-        </div>
-        
-        <div className="w-full sm:w-72">
-          <Select value={selectedBuildingId} onValueChange={setSelectedBuildingId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um prédio" />
-            </SelectTrigger>
-            <SelectContent>
-              {buildings.map((building) => (
-                <SelectItem key={building.id} value={building.id}>
-                  <div className="flex items-center space-x-2">
-                    <Building2 className="w-4 h-4" />
-                    <span>{building.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={handleBackToSelection}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard do Usuário</h1>
+            <p className="text-gray-600">Monitore seus medidores e consumo</p>
+          </div>
         </div>
       </div>
 
@@ -175,6 +175,10 @@ const UserDashboard = () => {
                       </p>
                     </div>
                   )}
+
+                  <div className="pt-4 border-t">
+                    <EditReadingDialog meter={meter} onReadingAdded={handleReadingAdded} />
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -185,13 +189,10 @@ const UserDashboard = () => {
           <CardContent>
             <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {selectedBuildingId ? 'Nenhum medidor encontrado' : 'Selecione um prédio'}
+              Nenhum medidor encontrado
             </h3>
             <p className="text-gray-600">
-              {selectedBuildingId 
-                ? 'Este prédio não possui medidores cadastrados'
-                : 'Escolha um prédio para visualizar os medidores'
-              }
+              Este prédio não possui medidores ativos cadastrados
             </p>
           </CardContent>
         </Card>
