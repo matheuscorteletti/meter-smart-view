@@ -243,10 +243,10 @@ backend/                # Backend Node.js
 ├── src/routes/
 │   └── install.js      # API do instalador
 docker-compose.yml      # Configuração Docker
+docker-compose.prod.yml # Configuração Produção
 install/                # Scripts de instalação
 ├── init.sql           # Script do banco
-├── INSTALLER.md       # Documentação do instalador
-└── README.md          # Guias de instalação
+└── INSTALLER.md       # Documentação do instalador
 ```
 
 ## 📋 Comandos Administrativos
