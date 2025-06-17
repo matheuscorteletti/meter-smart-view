@@ -1,5 +1,4 @@
 
-
 -- ============================================
 -- SISTEMA DE MEDIDORES - SCRIPT DE INSTALAÇÃO
 -- ============================================
@@ -88,7 +87,7 @@ CREATE TABLE IF NOT EXISTS readings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (meter_id) REFERENCES meters(id) ON DELETE CASCADE,
-    FOREIGN KEY (reader_id) REFERENCES users(id) ON SET NULL,
+    FOREIGN KEY (reader_id) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE KEY unique_reading_per_date (meter_id, reading_date)
 );
 
@@ -126,4 +125,3 @@ INSERT IGNORE INTO units (id, building_id, number, floor, owner_name, owner_emai
 INSERT IGNORE INTO meters (id, unit_id, type, serial_number, brand, model, initial_reading, threshold) VALUES 
 ('meter-001', 'unit-001', 'water', 'H2O-001-2024', 'AquaMeter', 'AM-500', 12345.50000, 50.00),
 ('meter-002', 'unit-001', 'energy', 'ELE-001-2024', 'EnergyTech', 'ET-300', 54321.00000, 100.00);
-
