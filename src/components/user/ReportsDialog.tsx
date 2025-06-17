@@ -266,7 +266,7 @@ const ReportsDialog = () => {
     
     // Função para adicionar nova página se necessário
     const checkPageSpace = (neededSpace: number) => {
-      if (yPos + neededSpace > 280) {
+      if (yPos + neededSpace > 270) {
         doc.addPage();
         yPos = 30;
       }
@@ -275,23 +275,23 @@ const ReportsDialog = () => {
     // Cabeçalho
     doc.setFontSize(22);
     doc.setTextColor(44, 62, 80);
-    doc.text('RELATORIO DE CONSUMO', 105, yPos, { align: 'center' });
-    yPos += 15;
+    doc.text('RELATÓRIO DE CONSUMO', 105, yPos, { align: 'center' });
+    yPos += 20;
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
     doc.text(`Gerado em: ${format(now, 'dd/MM/yyyy HH:mm:ss')}`, 105, yPos, { align: 'center' });
-    yPos += 20;
+    yPos += 25;
 
     // Informações de Filtros
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.text('INFORMAÇÕES DO RELATÓRIO', 20, yPos);
-    yPos += 15;
+    yPos += 20;
 
     // Caixa de informações
     doc.setDrawColor(200, 200, 200);
-    doc.rect(20, yPos - 5, 170, 30);
+    doc.rect(20, yPos - 5, 170, 35);
     
     doc.setFontSize(10);
     const periodText = selectedPeriod === 'custom' && startDate && endDate
@@ -307,22 +307,22 @@ const ReportsDialog = () => {
       : `Unidade ${unitsData.find(u => u.id === selectedUnit)?.number || 'N/A'}`;
     
     doc.text(`Período: ${periodText}`, 25, yPos + 5);
-    doc.text(`Edifício: ${buildingText}`, 25, yPos + 12);
-    doc.text(`Unidade: ${unitText}`, 25, yPos + 19);
-    yPos += 40;
+    doc.text(`Edifício: ${buildingText}`, 25, yPos + 13);
+    doc.text(`Unidade: ${unitText}`, 25, yPos + 21);
+    yPos += 50;
 
     // Resumo Executivo
     if (reportOptions.includeSummary) {
-      checkPageSpace(50);
+      checkPageSpace(60);
       
       doc.setFontSize(14);
       doc.setTextColor(0, 0, 0);
       doc.text('RESUMO EXECUTIVO', 20, yPos);
-      yPos += 15;
+      yPos += 20;
       
       // Tabela de resumo
       doc.setDrawColor(200, 200, 200);
-      doc.rect(20, yPos - 5, 170, 50);
+      doc.rect(20, yPos - 5, 170, 55);
       
       // Cabeçalhos da tabela
       doc.setFillColor(240, 240, 240);
@@ -333,7 +333,7 @@ const ReportsDialog = () => {
       doc.setTextColor(0, 0, 0);
       doc.text('MÉTRICA', 22, yPos + 2);
       doc.text('VALOR', 107, yPos + 2);
-      yPos += 12;
+      yPos += 15;
       
       // Dados do resumo com formatação brasileira corrigida
       const summaryData = [
@@ -354,7 +354,7 @@ const ReportsDialog = () => {
         yPos += 8;
       });
       
-      yPos += 15;
+      yPos += 25;
     }
 
     // Gráficos e Análises por Prédio
@@ -366,7 +366,7 @@ const ReportsDialog = () => {
       doc.setFontSize(18);
       doc.setTextColor(44, 62, 80);
       doc.text('ANÁLISE GRÁFICA', 105, yPos, { align: 'center' });
-      yPos += 20;
+      yPos += 30;
 
       // Gráfico Expandido: Consumo por Tipo (maior)
       const waterConsumption = filteredReadings
@@ -384,13 +384,13 @@ const ReportsDialog = () => {
 
       // Gráfico maior de consumo por tipo
       drawBarChart(doc, 20, yPos, 170, 80, consumptionByType, 'CONSUMO TOTAL POR TIPO DE MEDIDOR');
-      yPos += 100;
+      yPos += 110;
 
       // Análise por Prédio
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
       doc.text('ANÁLISE DETALHADA POR PRÉDIO', 20, yPos);
-      yPos += 20; // Increased spacing
+      yPos += 25;
 
       // Garantir que buildingsData seja um array
       const validBuildingsData = Array.isArray(buildingsData) ? buildingsData : [];
@@ -420,7 +420,7 @@ const ReportsDialog = () => {
         doc.setFontSize(14);
         doc.setTextColor(52, 73, 94);
         doc.text(`Prédio: ${building.name}`, 20, yPos);
-        yPos += 15; // Increased spacing
+        yPos += 20;
 
         // Consumo por tipo neste prédio
         const buildingWaterConsumption = buildingReadings
@@ -452,13 +452,13 @@ const ReportsDialog = () => {
             label: `Unid ${unit.number.substring(0, 6)}`,
             value: Math.round(totalConsumption)
           };
-        }).filter(item => item.value > 0).slice(0, 8); // Máximo 8 unidades por gráfico
+        }).filter(item => item.value > 0).slice(0, 8);
 
         if (unitConsumption.length > 0) {
           drawBarChart(doc, 110, yPos, 80, 40, unitConsumption, 'Consumo por Unidade');
         }
 
-        yPos += 55; // Increased spacing
+        yPos += 60;
 
         // Estatísticas do prédio
         doc.setFontSize(10);
@@ -472,11 +472,11 @@ const ReportsDialog = () => {
         ];
         
         doc.text(buildingStats.join(' | '), 20, yPos);
-        yPos += 25; // Increased spacing between buildings
+        yPos += 30;
       });
 
       // Consumo ao Longo do Tempo (últimos 7 dias)
-      checkPageSpace(80);
+      checkPageSpace(90);
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
@@ -498,18 +498,18 @@ const ReportsDialog = () => {
 
       if (timeSeriesData.some(d => d.value > 0)) {
         drawLineChart(doc, 20, yPos, 170, 60, timeSeriesData, 'Consumo nos Últimos 7 Dias');
-        yPos += 80;
+        yPos += 90;
       }
     }
 
     // Relatório de Datas das Leituras
     if (reportOptions.includeDetails && filteredReadings.length > 0) {
-      checkPageSpace(60);
+      checkPageSpace(70);
       
       doc.setFontSize(16);
       doc.setTextColor(44, 62, 80);
       doc.text('RELATÓRIO DE DATAS DAS LEITURAS', 20, yPos);
-      yPos += 25; // Increased spacing
+      yPos += 30;
 
       // Agrupar leituras por data
       const readingsByDate: { [key: string]: any[] } = {};
@@ -527,9 +527,9 @@ const ReportsDialog = () => {
       // Mostrar estatísticas por data
       Object.entries(readingsByDate)
         .sort(([a], [b]) => new Date(b.split('/').reverse().join('-')).getTime() - new Date(a.split('/').reverse().join('-')).getTime())
-        .slice(0, 15) // Últimas 15 datas
+        .slice(0, 15)
         .forEach(([date, readings]) => {
-          checkPageSpace(15);
+          checkPageSpace(18);
           
           const waterReadings = readings.filter(r => 
             validMetersData.find(m => m.id === r.meterId)?.type === 'water'
@@ -542,7 +542,7 @@ const ReportsDialog = () => {
 
           // Caixa para cada data
           doc.setFillColor(248, 249, 250);
-          doc.rect(20, yPos - 3, 170, 12, 'F');
+          doc.rect(20, yPos - 3, 170, 15, 'F');
           
           doc.setFontSize(11);
           doc.setTextColor(52, 73, 94);
@@ -550,24 +550,24 @@ const ReportsDialog = () => {
           
           doc.setFontSize(9);
           doc.setTextColor(100, 100, 100);
-          doc.text(`${readings.length} leituras`, 25, yPos + 7);
-          doc.text(`${waterReadings.length} água`, 70, yPos + 7);
-          doc.text(`${energyReadings.length} energia`, 110, yPos + 7);
-          doc.text(`${alertsCount} alertas`, 150, yPos + 7);
-          doc.text(`${totalConsumption.toFixed(1)} total`, 25, yPos + 11);
+          doc.text(`${readings.length} leituras`, 25, yPos + 8);
+          doc.text(`${waterReadings.length} água`, 70, yPos + 8);
+          doc.text(`${energyReadings.length} energia`, 110, yPos + 8);
+          doc.text(`${alertsCount} alertas`, 150, yPos + 8);
+          doc.text(`${totalConsumption.toFixed(1)} total`, 25, yPos + 12);
           
-          yPos += 15;
+          yPos += 18;
         });
     }
 
     // Análise Detalhada de Alertas (se houver alertas)
     if (reportOptions.includeAlerts && alerts > 0) {
-      checkPageSpace(80); // Increased space check
+      checkPageSpace(90);
       
       doc.setFontSize(16);
       doc.setTextColor(220, 53, 69);
       doc.text('ANÁLISE DETALHADA DE ALERTAS', 20, yPos);
-      yPos += 25; // Increased spacing
+      yPos += 30;
       
       const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
       const alertReadings = validFilteredReadings.filter(r => r.isAlert);
@@ -576,7 +576,7 @@ const ReportsDialog = () => {
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text('ALERTAS POR EDIFÍCIO', 20, yPos);
-      yPos += 15; // Increased spacing
+      yPos += 20;
       
       buildingsData.forEach(building => {
         const buildingUnits = unitsData.filter(u => u.buildingId === building.id);
@@ -597,23 +597,23 @@ const ReportsDialog = () => {
           
           doc.setFontSize(10);
           doc.setFillColor(254, 242, 242);
-          doc.rect(20, yPos - 3, 170, 15, 'F'); // Increased height
+          doc.rect(20, yPos - 3, 170, 18, 'F');
           doc.setTextColor(220, 53, 69);
-          doc.text(`${building.name}: ${buildingAlerts.length} alertas`, 25, yPos + 2);
+          doc.text(`${building.name}: ${buildingAlerts.length} alertas`, 25, yPos + 3);
           doc.setTextColor(100, 100, 100);
-          doc.text(`(${waterAlerts} água, ${energyAlerts} energia)`, 25, yPos + 8);
-          yPos += 20; // Increased spacing
+          doc.text(`(${waterAlerts} água, ${energyAlerts} energia)`, 25, yPos + 10);
+          yPos += 25;
         }
       });
       
-      yPos += 15; // Additional spacing
+      yPos += 20;
       
       // TOP 5 Maiores Ofensores
-      checkPageSpace(80); // Increased space check
+      checkPageSpace(90);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text('TOP 5 MAIORES OFENSORES', 20, yPos);
-      yPos += 15; // Increased spacing
+      yPos += 20;
       
       // Calcular consumo por unidade
       const consumptionByUnit = unitsData.map(unit => {
@@ -645,25 +645,25 @@ const ReportsDialog = () => {
         } else {
           doc.setFillColor(248, 249, 250);
         }
-        doc.rect(20, yPos - 3, 170, 18, 'F'); // Increased height
+        doc.rect(20, yPos - 3, 170, 20, 'F');
         
         doc.setFontSize(10);
         doc.setTextColor(0, 0, 0);
-        doc.text(`${position} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 3);
+        doc.text(`${position} Unidade ${unit.unitNumber} - ${unit.buildingName}`, 25, yPos + 4);
         doc.setTextColor(100, 100, 100);
-        doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 10);
+        doc.text(`Consumo: ${unit.consumption.toFixed(1)} | Alertas: ${unit.alerts} | Leituras: ${unit.readings}`, 25, yPos + 12);
         
-        yPos += 23; // Increased spacing
+        yPos += 25;
       });
       
-      yPos += 15; // Additional spacing
+      yPos += 20;
       
       // Estatísticas de Alertas
-      checkPageSpace(60);
+      checkPageSpace(70);
       doc.setFontSize(12);
       doc.setTextColor(0, 0, 0);
       doc.text('ESTATÍSTICAS DE ALERTAS', 20, yPos);
-      yPos += 15; // Increased spacing
+      yPos += 20;
       
       const totalUnitsWithAlerts = new Set(
         alertReadings.map(r => {
@@ -685,17 +685,17 @@ const ReportsDialog = () => {
       doc.setFontSize(10);
       alertStats.forEach(stat => {
         doc.text(stat, 25, yPos);
-        yPos += 10; // Increased spacing
+        yPos += 12;
       });
       
-      yPos += 20; // Additional spacing
+      yPos += 25;
       
       // Recomendações
-      checkPageSpace(60);
+      checkPageSpace(70);
       doc.setFontSize(12);
       doc.setTextColor(25, 135, 84);
       doc.text('RECOMENDAÇÕES', 20, yPos);
-      yPos += 15; // Increased spacing
+      yPos += 20;
       
       const recommendations = [
         '• Realizar auditoria nos maiores consumidores identificados',
@@ -709,17 +709,19 @@ const ReportsDialog = () => {
       doc.setTextColor(0, 0, 0);
       recommendations.forEach(rec => {
         doc.text(rec, 25, yPos);
-        yPos += 10; // Increased spacing
+        yPos += 12;
       });
+      
+      yPos += 25;
     }
 
     // Dados Detalhados
     if (reportOptions.includeDetails && filteredReadings.length > 0) {
-      checkPageSpace(60);
+      checkPageSpace(70);
       
       doc.setFontSize(14);
       doc.text('DADOS DETALHADOS', 20, yPos);
-      yPos += 15;
+      yPos += 20;
       
       // Cabeçalho da tabela
       doc.setFillColor(52, 73, 94);
@@ -735,7 +737,7 @@ const ReportsDialog = () => {
       doc.text('Consumo', 130, yPos);
       doc.text('Limite', 150, yPos);
       doc.text('Alerta', 170, yPos);
-      yPos += 8;
+      yPos += 12;
       
       doc.setTextColor(0, 0, 0);
       
@@ -750,7 +752,7 @@ const ReportsDialog = () => {
         .slice(0, 25);
       
       sortedReadings.forEach((reading, index) => {
-        checkPageSpace(8);
+        checkPageSpace(10);
         
         const meter = validMetersData.find(m => m.id === reading.meterId);
         const unit = validUnitsData.find(u => u.id === meter?.unitId);
@@ -761,13 +763,13 @@ const ReportsDialog = () => {
         // Alternar cor de fundo
         if (index % 2 === 0) {
           doc.setFillColor(248, 249, 250);
-          doc.rect(20, yPos - 2, 170, 6, 'F');
+          doc.rect(20, yPos - 2, 170, 8, 'F');
         }
         
         // Destacar alertas
         if (reading.isAlert) {
           doc.setFillColor(254, 242, 242);
-          doc.rect(20, yPos - 2, 170, 6, 'F');
+          doc.rect(20, yPos - 2, 170, 8, 'F');
         }
         
         doc.setFontSize(7);
@@ -783,11 +785,11 @@ const ReportsDialog = () => {
         doc.text(meter.threshold?.toFixed(1) || 'N/A', 150, yPos + 2);
         doc.text(reading.isAlert ? 'SIM' : 'Não', 170, yPos + 2);
         
-        yPos += 6;
+        yPos += 8;
       });
       
       if (validFilteredReadings.length > 25) {
-        yPos += 5;
+        yPos += 8;
         doc.setFontSize(8);
         doc.text(`... e mais ${validFilteredReadings.length - 25} leituras não exibidas`, 20, yPos);
       }
