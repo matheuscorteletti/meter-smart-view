@@ -33,9 +33,9 @@ DELETE FROM users WHERE role != 'admin' OR email NOT LIKE '%@medidores.local';
 -- USUÁRIO ADMINISTRADOR PRINCIPAL
 -- ============================================
 
--- Criar usuário admin principal (senha: admin123)
+-- Criar usuário admin principal (senha: admin123 - hash bcrypt corrigido)
 INSERT INTO users (id, name, email, password_hash, role) VALUES 
-('admin-main', 'Administrador Principal', 'admin@medidores.local', '$2a$10$rXKXaELQz5e4zKZ3YxKq7OzBGzYLl9xZ7BhU/8.Y7X9QWERTYUIOP', 'admin')
+('admin-main', 'Administrador Principal', 'admin@medidores.local', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
 ON DUPLICATE KEY UPDATE 
 name = VALUES(name),
 password_hash = VALUES(password_hash),

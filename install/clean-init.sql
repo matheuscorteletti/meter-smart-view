@@ -96,43 +96,16 @@ CREATE TABLE IF NOT EXISTS readings (
 -- ÍNDICES PARA PERFORMANCE
 -- ============================================
 
--- Verificar e criar índices apenas se não existirem
-SET @sql = '';
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'users' AND index_name = 'idx_users_email';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_users_email ON users(email)', 'SELECT "Index idx_users_email already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'users' AND index_name = 'idx_users_building';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_users_building ON users(building_id)', 'SELECT "Index idx_users_building already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'users' AND index_name = 'idx_users_role';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_users_role ON users(role)', 'SELECT "Index idx_users_role already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'units' AND index_name = 'idx_units_building';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_units_building ON units(building_id)', 'SELECT "Index idx_units_building already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'meters' AND index_name = 'idx_meters_unit';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_meters_unit ON meters(unit_id)', 'SELECT "Index idx_meters_unit already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'meters' AND index_name = 'idx_meters_type';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_meters_type ON meters(type)', 'SELECT "Index idx_meters_type already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'readings' AND index_name = 'idx_readings_meter';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_readings_meter ON readings(meter_id)', 'SELECT "Index idx_readings_meter already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'readings' AND index_name = 'idx_readings_date';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_readings_date ON readings(reading_date)', 'SELECT "Index idx_readings_date already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-SELECT COUNT(*) INTO @index_exists FROM information_schema.statistics WHERE table_schema = 'meter' AND table_name = 'readings' AND index_name = 'idx_readings_alert';
-SET @sql = IF(@index_exists = 0, 'CREATE INDEX idx_readings_alert ON readings(is_alert)', 'SELECT "Index idx_readings_alert already exists"');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+-- Criar índices simples (compatível com todas as versões do MySQL)
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_building ON users(building_id);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_units_building ON units(building_id);
+CREATE INDEX idx_meters_unit ON meters(unit_id);
+CREATE INDEX idx_meters_type ON meters(type);
+CREATE INDEX idx_readings_meter ON readings(meter_id);
+CREATE INDEX idx_readings_date ON readings(reading_date);
+CREATE INDEX idx_readings_alert ON readings(is_alert);
 
 -- ============================================
 -- LIMPEZA DE DADOS EXISTENTES (se houver)
@@ -149,9 +122,9 @@ DELETE FROM users;
 -- USUÁRIO ADMINISTRADOR PRINCIPAL
 -- ============================================
 
--- Senha padrão: admin123 (hash bcrypt)
+-- Senha: admin123 (hash bcrypt corrigido)
 INSERT INTO users (id, name, email, password_hash, role) VALUES 
-('admin-main', 'Administrador Principal', 'admin@medidores.local', '$2a$10$rXKXaELQz5e4zKZ3YxKq7OzBGzYLl9xZ7BhU/8.Y7X9QWERTYUIOP', 'admin');
+('admin-main', 'Administrador Principal', 'admin@medidores.local', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
 -- ============================================
 -- VERIFICAÇÃO FINAL
