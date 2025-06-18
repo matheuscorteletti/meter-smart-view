@@ -1,15 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
-import { mockLogin, mockGetProfile } from '@/services/mockAuth';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  switchProfile: (role: 'admin' | 'user' | 'viewer') => void;
-  isAdminSwitched: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,8 +24,6 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAdminSwitched, setIsAdminSwitched] = useState(false);
-  const [originalRole, setOriginalRole] = useState<'admin' | 'user' | 'viewer' | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -41,9 +36,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (token: string) => {
     try {
-      console.log('Tentando buscar perfil do usuário...');
+      console.log('Buscando perfil do usuário...');
       
-      // Try real API first, fallback to mock if not available
       const response = await fetch(`${BASE_URL}/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -56,31 +50,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const userData = await response.json();
-          console.log('Perfil carregado da API:', userData);
-          setUser(userData);
-          return;
-        }
-      }
-
-      // API not available or error, use mock
-      console.log('API não disponível, usando dados mock para perfil');
-      const mockUser = await mockGetProfile(token);
-      console.log('Perfil mock carregado:', mockUser);
-      setUser(mockUser);
-
-    } catch (error) {
-      console.log('Erro ao buscar perfil, tentando mock:', error);
-      try {
-        const mockUser = await mockGetProfile(token);
-        console.log('Perfil mock carregado após erro:', mockUser);
-        setUser(mockUser);
-      } catch (mockError) {
-        console.error('Erro no mock também:', mockError);
+        const userData = await response.json();
+        console.log('Perfil carregado:', userData);
+        setUser(userData);
+      } else {
+        console.error('Erro ao buscar perfil:', response.statusText);
         localStorage.removeItem('token');
       }
+    } catch (error) {
+      console.error('Erro ao buscar perfil:', error);
+      localStorage.removeItem('token');
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Tentando fazer login com:', { email });
       
-      // Try real API first
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -101,51 +79,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Resposta da API de login:', {
         status: response.status,
-        statusText: response.statusText,
-        url: response.url
+        statusText: response.statusText
       });
 
       if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-          console.log('Dados de login recebidos da API:', data);
-          
-          if (data.token && data.user) {
-            localStorage.setItem('token', data.token);
-            setUser(data.user);
-            return;
-          }
-        } else {
-          console.log('Resposta da API não é JSON válido');
-        }
+        const data = await response.json();
+        console.log('Login bem-sucedido:', data);
+        
+        localStorage.setItem('token', data.token);
+        setUser(data.user);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro no login');
       }
-
-      // If real API fails or returns 404, use mock
-      console.log('API não disponível ou com erro, usando autenticação mock');
-      const mockData = await mockLogin(email, password);
-      console.log('Login mock bem-sucedido:', mockData);
-      
-      localStorage.setItem('token', mockData.token);
-      setUser(mockData.user);
-
     } catch (error) {
-      if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
-        // Network error, try mock
-        console.log('Erro de rede, tentando mock:', error);
-        try {
-          const mockData = await mockLogin(email, password);
-          console.log('Login mock bem-sucedido após erro de rede:', mockData);
-          
-          localStorage.setItem('token', mockData.token);
-          setUser(mockData.user);
-          return;
-        } catch (mockError) {
-          console.error('Erro no mock após erro de rede:', mockError);
-          throw mockError;
-        }
-      }
-      
       console.error('Erro no login:', error);
       throw error;
     }
@@ -154,27 +101,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    setIsAdminSwitched(false);
-    setOriginalRole(null);
-  };
-
-  const switchProfile = (role: 'admin' | 'user' | 'viewer') => {
-    if (!user) return;
-    
-    if (user.role === 'admin' && !isAdminSwitched) {
-      // Admin switching to another role
-      setOriginalRole(user.role);
-      setIsAdminSwitched(true);
-      setUser({ ...user, role });
-    } else if (isAdminSwitched && role === 'admin') {
-      // Switching back to admin
-      setIsAdminSwitched(false);
-      setUser({ ...user, role: originalRole || 'admin' });
-      setOriginalRole(null);
-    } else if (isAdminSwitched) {
-      // Admin switching between non-admin roles
-      setUser({ ...user, role });
-    }
   };
 
   return (
@@ -182,9 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user, 
       login, 
       logout, 
-      isLoading, 
-      switchProfile, 
-      isAdminSwitched 
+      isLoading
     }}>
       {children}
     </AuthContext.Provider>

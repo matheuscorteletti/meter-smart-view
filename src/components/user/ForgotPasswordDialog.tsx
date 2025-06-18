@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
+import { useApi } from '@/hooks/useApi';
 
 interface ForgotPasswordDialogProps {
   open: boolean;
@@ -13,6 +14,7 @@ interface ForgotPasswordDialogProps {
 }
 
 const ForgotPasswordDialog: React.FC<ForgotPasswordDialogProps> = ({ open, onOpenChange }) => {
+  const { apiCall } = useApi();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -24,19 +26,14 @@ const ForgotPasswordDialog: React.FC<ForgotPasswordDialogProps> = ({ open, onOpe
     setIsLoading(true);
 
     try {
-      // TODO: Implementar chamada para API do backend
-      // const response = await fetch('/api/auth/forgot-password', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email })
-      // });
-
-      // Simulação temporária
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await apiCall('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
       
       setIsSuccess(true);
     } catch (err) {
-      setError('Erro ao enviar email. Verifique o endereço e tente novamente.');
+      setError(err instanceof Error ? err.message : 'Erro ao enviar email');
     } finally {
       setIsLoading(false);
     }

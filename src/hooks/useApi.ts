@@ -4,34 +4,23 @@ import { useState, useEffect } from 'react';
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 export const useApi = () => {
-  const getHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-    };
-  };
-
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    console.log('Fazendo chamada para:', `${BASE_URL}${endpoint}`);
+    const token = localStorage.getItem('token');
     
-    const response = await fetch(`${BASE_URL}${endpoint}`, {
+    const config: RequestInit = {
       ...options,
       headers: {
-        ...getHeaders(),
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
-    });
+    };
 
-    console.log('Resposta da API:', {
-      status: response.status,
-      statusText: response.statusText,
-      url: response.url
-    });
-
+    const response = await fetch(`${BASE_URL}${endpoint}`, config);
+    
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Erro na API' }));
-      throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
     }
 
     return response.json();
@@ -50,13 +39,10 @@ export const useApiData = <T>(endpoint: string) => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Buscando dados do endpoint:', endpoint);
       const result = await apiCall(endpoint);
-      console.log('Dados recebidos:', result);
       setData(result);
     } catch (err) {
-      console.error('Erro ao buscar dados:', err);
-      setError(err instanceof Error ? err.message : 'Erro desconhecido');
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
       setData([]);
     } finally {
       setLoading(false);

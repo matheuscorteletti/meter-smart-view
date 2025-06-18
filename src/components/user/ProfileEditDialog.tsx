@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User, Mail, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useApi } from '@/hooks/useApi';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface ProfileEditDialogProps {
 
 const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChange }) => {
   const { user } = useAuth();
+  const { apiCall } = useApi();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -29,15 +31,10 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
     setIsLoading(true);
 
     try {
-      // TODO: Implementar chamada para API do backend
-      // const response = await fetch('/api/users/profile', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
-
-      // Simulação temporária
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await apiCall('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify(formData),
+      });
       
       toast({
         title: "Perfil atualizado",
@@ -45,8 +42,9 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
       });
       
       onOpenChange(false);
+      window.location.reload(); // Refresh to update user data
     } catch (err) {
-      setError('Erro ao atualizar perfil. Tente novamente.');
+      setError(err instanceof Error ? err.message : 'Erro ao atualizar perfil');
     } finally {
       setIsLoading(false);
     }

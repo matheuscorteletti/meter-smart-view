@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,126 +7,93 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Building, Unit, User } from '@/types';
-import { getBuildings, getUnits } from '@/lib/storage';
+import { User } from '@/types';
+import { useApiData, useApi } from '@/hooks/useApi';
 import { Users, Plus, Edit, Shield, UserCheck, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface UserWithDetails extends User {
-  buildingName?: string;
-  unitNumber?: string;
-}
-
 const UserManagement = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [users, setUsers] = useState<UserWithDetails[]>([]);
+  const { data: users, loading, refetch } = useApiData<User>('/users');
+  const { apiCall } = useApi();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     role: '',
+    password: '',
   });
 
-  useEffect(() => {
-    const buildingsData = getBuildings();
-    const unitsData = getUnits();
-    
-    setBuildings(buildingsData);
-    setUnits(unitsData);
-
-    // Usuários demo
-    const demoUsers: UserWithDetails[] = [
-      {
-        id: 'admin-1',
-        name: 'Administrador',
-        email: 'admin@demo.com',
-        role: 'admin',
-      },
-      {
-        id: 'user-1013',
-        name: 'João Silva',
-        email: 'user@demo.com',
-        role: 'user',
-      },
-      {
-        id: 'viewer-1',
-        name: 'Maria Santos',
-        email: 'viewer@demo.com',
-        role: 'viewer',
-      },
-    ];
-    
-    setUsers(demoUsers);
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newUser: UserWithDetails = {
-      id: `user-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      role: formData.role as 'admin' | 'user' | 'viewer',
-    };
+    try {
+      await apiCall('/users', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
 
-    setUsers([...users, newUser]);
-    
-    setFormData({
-      name: '',
-      email: '',
-      role: '',
-    });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Usuário cadastrado",
-      description: "Usuário adicionado com sucesso!",
-    });
+      setFormData({ name: '', email: '', role: '', password: '' });
+      setIsDialogOpen(false);
+      refetch();
+      
+      toast({
+        title: "Usuário cadastrado",
+        description: "Usuário adicionado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao cadastrar usuário",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEdit = (user: UserWithDetails) => {
+  const handleEdit = (user: User) => {
     setEditingUser(user);
     setFormData({
       name: user.name,
       email: user.email,
       role: user.role,
+      password: '',
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingUser) return;
 
-    const updatedUsers = users.map(user =>
-      user.id === editingUser.id
-        ? {
-            ...user,
-            name: formData.name,
-            email: formData.email,
-            role: formData.role as 'admin' | 'user' | 'viewer',
-          }
-        : user
-    );
+    try {
+      const updateData = { ...formData };
+      if (!updateData.password) {
+        delete updateData.password; // Don't update password if empty
+      }
 
-    setUsers(updatedUsers);
-    
-    setFormData({
-      name: '',
-      email: '',
-      role: '',
-    });
-    setEditingUser(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Usuário atualizado",
-      description: "Usuário editado com sucesso!",
-    });
+      await apiCall(`/users/${editingUser.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updateData),
+      });
+
+      setFormData({ name: '', email: '', role: '', password: '' });
+      setEditingUser(null);
+      setIsEditDialogOpen(false);
+      refetch();
+      
+      toast({
+        title: "Usuário atualizado",
+        description: "Usuário editado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao atualizar usuário",
+        variant: "destructive",
+      });
+    }
   };
 
   const getUserIcon = (role: string) => {
@@ -162,52 +129,9 @@ const UserManagement = () => {
     }
   };
 
-  const renderUserForm = (isEdit = false) => (
-    <form onSubmit={isEdit ? handleEditSubmit : handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-name" : "name"}>Nome</Label>
-        <Input
-          id={isEdit ? "edit-name" : "name"}
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Nome completo"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-email" : "email"}>E-mail</Label>
-        <Input
-          id={isEdit ? "edit-email" : "email"}
-          type="email"
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          placeholder="usuario@email.com"
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor={isEdit ? "edit-role" : "role"}>Tipo de Usuário</Label>
-        <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="admin">Administrador</SelectItem>
-            <SelectItem value="user">Usuário</SelectItem>
-            <SelectItem value="viewer">Visualizador</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!formData.role}
-      >
-        {isEdit ? 'Salvar Alterações' : 'Cadastrar Usuário'}
-      </Button>
-    </form>
-  );
+  if (loading) {
+    return <div className="flex justify-center p-8">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -228,7 +152,60 @@ const UserManagement = () => {
             <DialogHeader>
               <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
             </DialogHeader>
-            {renderUserForm()}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="usuario@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Senha inicial"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Tipo de Usuário</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="user">Usuário</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!formData.role}
+              >
+                Cadastrar Usuário
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
 
@@ -238,7 +215,59 @@ const UserManagement = () => {
             <DialogHeader>
               <DialogTitle>Editar Usuário</DialogTitle>
             </DialogHeader>
-            {renderUserForm(true)}
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Nome</Label>
+                <Input
+                  id="edit-name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">E-mail</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="usuario@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-password">Nova Senha (deixe em branco para manter)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Nova senha (opcional)"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Tipo de Usuário</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="user">Usuário</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={!formData.role}
+              >
+                Salvar Alterações
+              </Button>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -271,15 +300,9 @@ const UserManagement = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Badge variant={user.role === 'admin' ? 'default' : user.role === 'viewer' ? 'secondary' : 'outline'}>
+                <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
                   {getRoleLabel(user.role)}
                 </Badge>
-                
-                {user.role === 'viewer' && (
-                  <div className="text-sm text-gray-600">
-                    <p>Acesso de visualização a todos os dados</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           );

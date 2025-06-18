@@ -43,7 +43,7 @@ router.post('/login', async (req, res) => {
     const user = users[0];
 
     // Verificar senha
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
@@ -56,16 +56,15 @@ router.post('/login', async (req, res) => {
     );
 
     // Resposta (sem senha)
-    const { password: _, ...userWithoutPassword } = user;
     res.json({
       token,
       user: {
-        id: userWithoutPassword.id,
-        name: userWithoutPassword.name,
-        email: userWithoutPassword.email,
-        role: userWithoutPassword.role,
-        buildingId: userWithoutPassword.building_id,
-        unitId: userWithoutPassword.unit_id
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        buildingId: user.building_id,
+        unitId: user.unit_id
       }
     });
 
