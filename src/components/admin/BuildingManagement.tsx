@@ -1,47 +1,47 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building } from '@/types';
-import { getBuildings, saveBuildings } from '@/lib/storage';
+import { useApiData, useApi } from '@/hooks/useApi';
 import { Building2, Plus, MapPin, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const BuildingManagement = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const { data: buildings, loading, refetch } = useApiData<Building>('/buildings');
+  const { apiCall } = useApi();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '' });
 
-  useEffect(() => {
-    setBuildings(getBuildings());
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newBuilding: Building = {
-      id: `building-${Date.now()}`,
-      name: formData.name,
-      address: formData.address,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      await apiCall('/buildings', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
 
-    const updatedBuildings = [...buildings, newBuilding];
-    setBuildings(updatedBuildings);
-    saveBuildings(updatedBuildings);
-    
-    setFormData({ name: '', address: '' });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Edifício cadastrado",
-      description: "Edifício adicionado com sucesso!",
-    });
+      setFormData({ name: '', address: '' });
+      setIsDialogOpen(false);
+      refetch();
+      
+      toast({
+        title: "Edifício cadastrado",
+        description: "Edifício adicionado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao cadastrar edifício",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (building: Building) => {
@@ -50,29 +50,38 @@ const BuildingManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingBuilding) return;
 
-    const updatedBuildings = buildings.map(building =>
-      building.id === editingBuilding.id
-        ? { ...building, name: formData.name, address: formData.address }
-        : building
-    );
+    try {
+      await apiCall(`/buildings/${editingBuilding.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(formData),
+      });
 
-    setBuildings(updatedBuildings);
-    saveBuildings(updatedBuildings);
-    
-    setFormData({ name: '', address: '' });
-    setEditingBuilding(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Edifício atualizado",
-      description: "Edifício editado com sucesso!",
-    });
+      setFormData({ name: '', address: '' });
+      setEditingBuilding(null);
+      setIsEditDialogOpen(false);
+      refetch();
+      
+      toast({
+        title: "Edifício atualizado",
+        description: "Edifício editado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao atualizar edifício",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return <div className="flex justify-center p-8">Carregando...</div>;
+  }
 
   return (
     <div className="space-y-6">

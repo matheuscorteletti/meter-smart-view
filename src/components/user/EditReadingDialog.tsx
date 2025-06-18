@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit3 } from 'lucide-react';
 import { Meter, Reading } from '@/types';
-import { addReading, getReadings } from '@/lib/storage';
+import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 interface EditReadingDialogProps {
   meter: Meter & { unitNumber: string };
@@ -16,21 +17,28 @@ interface EditReadingDialogProps {
 
 const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingAdded }) => {
   const { user } = useAuth();
+  const { apiCall } = useApi();
   const [isOpen, setIsOpen] = useState(false);
   const [reading, setReading] = useState('');
   const [currentReading, setCurrentReading] = useState(0);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Get the latest reading from storage
-    const allReadings = getReadings();
-    const meterReadings = allReadings
-      .filter(r => r.meterId === meter.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    const lastReading = meterReadings[0]?.reading || meter.initialReading;
-    setCurrentReading(lastReading);
-  }, [meter.id, meter.initialReading]);
+    if (isOpen) {
+      fetchLatestReading();
+    }
+  }, [isOpen, meter.id]);
+
+  const fetchLatestReading = async () => {
+    try {
+      const readings = await apiCall(`/readings/meter/${meter.id}`);
+      const latestReading = readings.length > 0 ? readings[0].reading : meter.initialReading;
+      setCurrentReading(latestReading);
+    } catch (error) {
+      console.error('Erro ao buscar leituras:', error);
+      setCurrentReading(meter.initialReading);
+    }
+  };
 
   const validateReading = (value: string) => {
     setError('');
@@ -64,7 +72,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     validateReading(value);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const readingValue = Number(reading);
@@ -80,25 +88,39 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       return;
     }
 
-    const consumption = Math.max(0, readingValue - currentReading);
-    const isAlert = consumption > meter.threshold;
+    try {
+      const consumption = Math.max(0, readingValue - currentReading);
+      const isAlert = consumption > meter.threshold;
 
-    const newReading: Omit<Reading, 'id'> = {
-      meterId: meter.id,
-      reading: readingValue,
-      consumption,
-      date: new Date().toISOString(),
-      isAlert,
-      meterType: meter.type,
-      unitNumber: meter.unitNumber,
-      launchedBy: user?.name || 'Usuário',
-    };
+      const newReading = {
+        meter_id: meter.id,
+        reading: readingValue,
+        consumption,
+        reading_date: new Date().toISOString().split('T')[0],
+        is_alert: isAlert,
+      };
 
-    addReading(newReading);
-    onReadingAdded();
-    setReading('');
-    setError('');
-    setIsOpen(false);
+      await apiCall('/readings', {
+        method: 'POST',
+        body: JSON.stringify(newReading),
+      });
+
+      onReadingAdded();
+      setReading('');
+      setError('');
+      setIsOpen(false);
+      
+      toast({
+        title: "Leitura registrada",
+        description: `Leitura de ${readingValue.toLocaleString('pt-BR')} registrada com sucesso!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao registrar leitura",
+        variant: "destructive",
+      });
+    }
   };
 
   const isFormValid = reading && !error && Number(reading) > currentReading;

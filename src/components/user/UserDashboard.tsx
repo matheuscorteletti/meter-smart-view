@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
-import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
+import { useApiData, useApi } from '@/hooks/useApi';
 import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, ArrowLeft } from 'lucide-react';
 import EditReadingDialog from './EditReadingDialog';
 import BuildingSelector from './BuildingSelector';
@@ -17,33 +17,25 @@ interface MeterWithDetails extends Meter {
 
 const UserDashboard = () => {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const { data: buildings } = useApiData<Building>('/buildings');
+  const { data: allMeters, refetch: refetchMeters } = useApiData<Meter>('/meters');
+  const { data: allReadings } = useApiData<Reading>('/readings');
+  const { data: allUnits } = useApiData<Unit>('/units');
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    const buildingsData = getBuildings();
-    setBuildings(buildingsData);
-  }, []);
-
-  useEffect(() => {
-    if (!selectedBuildingId) return;
-
-    const buildingsData = getBuildings();
-    const unitsData = getUnits();
-    const metersData = getMeters();
-    const readingsData = getReadings();
+    if (!selectedBuildingId || !allMeters.length || !allUnits.length) return;
 
     // Filter units by selected building
-    const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
+    const buildingUnits = allUnits.filter(unit => unit.buildingId === selectedBuildingId);
     const buildingUnitIds = buildingUnits.map(unit => unit.id);
 
-    const metersWithDetails: MeterWithDetails[] = metersData
-      .filter(meter => meter.isActive !== false && buildingUnitIds.includes(meter.unitId))
+    const metersWithDetails: MeterWithDetails[] = allMeters
+      .filter(meter => buildingUnitIds.includes(meter.unitId))
       .map(meter => {
-        const unit = unitsData.find(u => u.id === meter.unitId);
-        const building = buildingsData.find(b => b.id === unit?.buildingId);
-        const latestReading = readingsData
+        const unit = allUnits.find(u => u.id === meter.unitId);
+        const building = buildings.find(b => b.id === unit?.buildingId);
+        const latestReading = allReadings
           .filter(r => r.meterId === meter.id)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         
@@ -56,10 +48,10 @@ const UserDashboard = () => {
       });
     
     setMeters(metersWithDetails);
-  }, [selectedBuildingId, refreshTrigger]);
+  }, [selectedBuildingId, allMeters, allUnits, allReadings, buildings]);
 
   const handleReadingAdded = () => {
-    setRefreshTrigger(prev => prev + 1);
+    refetchMeters();
   };
 
   const handleSelectBuilding = (buildingId: string) => {
