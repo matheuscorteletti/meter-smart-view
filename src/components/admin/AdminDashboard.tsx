@@ -13,8 +13,8 @@ const AdminDashboard = () => {
 
   const isLoading = buildingsLoading || usersLoading || metersLoading || readingsLoading;
 
-  // Calcular alertas - assumindo que alertas são leituras recentes com valores altos
-  const alerts = readings.filter(reading => reading.consumption > 1000).length;
+  // Calcular alertas - assumindo que alertas são leituras com isAlert = true
+  const alerts = readings.filter(reading => reading.isAlert).length;
 
   const activeMeters = meters.filter(meter => meter.isActive !== false).length;
 
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
               {isLoading ? '...' : alerts}
             </div>
             <p className="text-xs text-muted-foreground">
-              Medições com consumo alto
+              Leituras com alertas
             </p>
           </CardContent>
         </Card>
