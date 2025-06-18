@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -69,9 +68,9 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`CORS configurado para aceitar: ${process.env.FRONTEND_URL || 'http://localhost:3000'} e Lovable`);
-  console.log(`API acessível em: http://192.168.100.234:${PORT}/api`);
+  console.log(`API acessível em: http://localhost:${PORT}/api`);
 });
