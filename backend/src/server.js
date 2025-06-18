@@ -21,7 +21,10 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://4029d73d-8548-4fe2-8eac-cc334a11ed89.lovableproject.com',
-    /\.lovableproject\.com$/
+    /\.lovableproject\.com$/,
+    // Permitir qualquer origem durante desenvolvimento
+    /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
+    /^https?:\/\/.*$/
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -70,4 +73,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`CORS configurado para aceitar: ${process.env.FRONTEND_URL || 'http://localhost:3000'} e Lovable`);
+  console.log(`API acessível em: http://192.168.100.234:${PORT}/api`);
 });
