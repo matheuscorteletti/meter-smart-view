@@ -22,13 +22,13 @@ const LoginForm = () => {
     setError('');
     setIsLoading(true);
 
-    const result = await login(email, password);
-    
-    if (!result.success) {
-      setError(result.error || 'Erro ao fazer login');
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
