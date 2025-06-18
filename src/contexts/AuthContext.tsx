@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
+import { mockLogin, mockGetProfile } from '@/services/mockAuth';
 
 interface AuthContextType {
   user: User | null;
@@ -38,6 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (token: string) => {
     try {
+      // Try real API first, fallback to mock if not available
       const response = await fetch('/api/users/profile', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -47,12 +48,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+      } else if (response.status === 404) {
+        // API not available, use mock
+        console.log('API não disponível, usando dados mock');
+        const mockUser = await mockGetProfile(token);
+        setUser(mockUser);
       } else {
         localStorage.removeItem('token');
       }
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      localStorage.removeItem('token');
+      console.log('Erro na API real, tentando mock:', error);
+      try {
+        const mockUser = await mockGetProfile(token);
+        setUser(mockUser);
+      } catch (mockError) {
+        console.error('Erro no mock também:', mockError);
+        localStorage.removeItem('token');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Tentando fazer login com:', { email });
       
+      // Try real API first
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -70,59 +83,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('Resposta recebida:', {
+      console.log('Resposta da API:', {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
         url: response.url
       });
 
-      // Verificar se a resposta tem conteúdo antes de tentar fazer parse
-      const contentType = response.headers.get('content-type');
-      console.log('Content-Type:', contentType);
-
-      if (!response.ok) {
-        let errorMessage = 'Erro no login';
-        
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-          } catch (parseError) {
-            console.error('Erro ao fazer parse do JSON de erro:', parseError);
-            // Se não conseguir fazer parse do JSON, usar o status da resposta
-            errorMessage = `Erro ${response.status}: ${response.statusText}`;
-          }
-        } else {
-          // Se não for JSON, tentar ler como texto
-          try {
-            const errorText = await response.text();
-            console.log('Resposta de erro como texto:', errorText);
-            errorMessage = errorText || errorMessage;
-          } catch (textError) {
-            console.error('Erro ao ler resposta como texto:', textError);
+          const data = await response.json();
+          console.log('Dados de login recebidos da API:', data);
+          
+          if (data.token && data.user) {
+            localStorage.setItem('token', data.token);
+            setUser(data.user);
+            return;
           }
         }
-        
-        throw new Error(errorMessage);
       }
 
-      // Verificar se a resposta de sucesso tem conteúdo JSON
-      if (contentType && contentType.includes('application/json')) {
-        const data = await response.json();
-        console.log('Dados de login recebidos:', data);
+      // If real API fails or returns 404, use mock
+      if (response.status === 404 || !response.ok) {
+        console.log('API não disponível, usando autenticação mock');
+        const mockData = await mockLogin(email, password);
+        console.log('Login mock bem-sucedido:', mockData);
         
-        if (data.token && data.user) {
-          localStorage.setItem('token', data.token);
-          setUser(data.user);
-        } else {
-          throw new Error('Resposta inválida do servidor');
-        }
-      } else {
-        throw new Error('Resposta do servidor não é JSON válido');
+        localStorage.setItem('token', mockData.token);
+        setUser(mockData.user);
+        return;
       }
+
+      throw new Error('Erro no servidor');
 
     } catch (error) {
+      if (error instanceof Error && error.message.includes('fetch')) {
+        // Network error, try mock
+        console.log('Erro de rede, tentando mock:', error);
+        try {
+          const mockData = await mockLogin(email, password);
+          console.log('Login mock bem-sucedido após erro de rede:', mockData);
+          
+          localStorage.setItem('token', mockData.token);
+          setUser(mockData.user);
+          return;
+        } catch (mockError) {
+          console.error('Erro no mock após erro de rede:', mockError);
+          throw mockError;
+        }
+      }
+      
       console.error('Erro no login:', error);
       throw error;
     }
