@@ -27,6 +27,7 @@ export interface Meter {
   id: string;
   unitId: string;
   type: 'water' | 'energy';
+  serial_number?: string;
   totalDigits: number;
   calculationDigits: number;
   initialReading: number;
