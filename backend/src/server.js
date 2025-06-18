@@ -15,9 +15,17 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança
 app.use(helmet());
+
+// Configuração de CORS mais permissiva para desenvolvimento
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://4029d73d-8548-4fe2-8eac-cc334a11ed89.lovableproject.com',
+    /\.lovableproject\.com$/
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Rate limiting
@@ -58,7 +66,8 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Rota não encontrada' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`CORS configurado para aceitar: ${process.env.FRONTEND_URL || 'http://localhost:3000'} e Lovable`);
 });

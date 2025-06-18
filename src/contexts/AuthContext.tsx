@@ -37,16 +37,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (token: string) => {
     try {
       console.log('Buscando perfil do usuário...');
+      console.log('URL da API:', `${BASE_URL}/users/profile`);
       
       const response = await fetch(`${BASE_URL}/users/profile`, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
 
       console.log('Resposta da API de perfil:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        url: response.url
       });
 
       if (response.ok) {
@@ -68,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       console.log('Tentando fazer login com:', { email });
+      console.log('URL da API:', `${BASE_URL}/auth/login`);
       
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
@@ -79,7 +84,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Resposta da API de login:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        url: response.url
       });
 
       if (response.ok) {
@@ -89,11 +95,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('token', data.token);
         setUser(data.user);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro no login');
+        const errorData = await response.json().catch(() => ({ error: 'Erro de comunicação com o servidor' }));
+        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
       }
     } catch (error) {
       console.error('Erro no login:', error);
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando.');
+      }
       throw error;
     }
   };
