@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 
@@ -7,7 +6,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  switchProfile: (role: string) => void;
+  switchProfile: (role: 'admin' | 'user' | 'viewer') => void;
   isAdminSwitched: boolean;
 }
 
@@ -25,7 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminSwitched, setIsAdminSwitched] = useState(false);
-  const [originalRole, setOriginalRole] = useState<string | null>(null);
+  const [originalRole, setOriginalRole] = useState<'admin' | 'user' | 'viewer' | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -89,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setOriginalRole(null);
   };
 
-  const switchProfile = (role: string) => {
+  const switchProfile = (role: 'admin' | 'user' | 'viewer') => {
     if (!user) return;
     
     if (user.role === 'admin' && !isAdminSwitched) {
