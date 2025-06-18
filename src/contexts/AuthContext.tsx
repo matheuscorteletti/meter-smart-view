@@ -14,6 +14,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -42,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Tentando buscar perfil do usuário...');
       
       // Try real API first, fallback to mock if not available
-      const response = await fetch('/api/users/profile', {
+      const response = await fetch(`${BASE_URL}/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -89,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Tentando fazer login com:', { email });
       
       // Try real API first
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
