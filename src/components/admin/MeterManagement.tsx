@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ const MeterManagement = () => {
     const unit = units.find(u => u.id === meter.unitId);
     const building = buildings.find(b => b.id === unit?.buildingId);
     
-    const matchesSearch = meter.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = meter.serial_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          meter.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          building?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          unit?.number.toString().includes(searchTerm);
@@ -242,7 +241,7 @@ const MeterManagement = () => {
                   
                   return (
                     <TableRow key={meter.id}>
-                      <TableCell className="font-medium">{meter.serialNumber}</TableCell>
+                      <TableCell className="font-medium">{meter.serial_number || 'N/A'}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
                           <Icon className="w-4 h-4" />

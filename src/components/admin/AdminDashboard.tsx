@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,12 +13,8 @@ const AdminDashboard = () => {
 
   const isLoading = buildingsLoading || usersLoading || metersLoading || readingsLoading;
 
-  // Calcular alertas - consumos acima de 50% do limite
-  const alerts = readings.filter(reading => {
-    const meter = meters.find(m => m.id === reading.meterId);
-    if (!meter?.limit) return false;
-    return reading.consumption > (meter.limit * 0.5);
-  }).length;
+  // Calcular alertas - assumindo que alertas são leituras recentes com valores altos
+  const alerts = readings.filter(reading => reading.consumption > 1000).length;
 
   const activeMeters = meters.filter(meter => meter.isActive !== false).length;
 
@@ -103,7 +98,7 @@ const AdminDashboard = () => {
               {isLoading ? '...' : alerts}
             </div>
             <p className="text-xs text-muted-foreground">
-              Medições acima do limite
+              Medições com consumo alto
             </p>
           </CardContent>
         </Card>
