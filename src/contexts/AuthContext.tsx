@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 import { mockLogin, mockGetProfile } from '@/services/mockAuth';
@@ -38,6 +39,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (token: string) => {
     try {
+      console.log('Tentando buscar perfil do usuário...');
+      
       // Try real API first, fallback to mock if not available
       const response = await fetch('/api/users/profile', {
         headers: {
@@ -45,21 +48,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
+      console.log('Resposta da API de perfil:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      } else if (response.status === 404) {
-        // API not available, use mock
-        console.log('API não disponível, usando dados mock');
-        const mockUser = await mockGetProfile(token);
-        setUser(mockUser);
-      } else {
-        localStorage.removeItem('token');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const userData = await response.json();
+          console.log('Perfil carregado da API:', userData);
+          setUser(userData);
+          return;
+        }
       }
+
+      // API not available or error, use mock
+      console.log('API não disponível, usando dados mock para perfil');
+      const mockUser = await mockGetProfile(token);
+      console.log('Perfil mock carregado:', mockUser);
+      setUser(mockUser);
+
     } catch (error) {
-      console.log('Erro na API real, tentando mock:', error);
+      console.log('Erro ao buscar perfil, tentando mock:', error);
       try {
         const mockUser = await mockGetProfile(token);
+        console.log('Perfil mock carregado após erro:', mockUser);
         setUser(mockUser);
       } catch (mockError) {
         console.error('Erro no mock também:', mockError);
@@ -83,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('Resposta da API:', {
+      console.log('Resposta da API de login:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url
@@ -100,24 +114,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(data.user);
             return;
           }
+        } else {
+          console.log('Resposta da API não é JSON válido');
         }
       }
 
       // If real API fails or returns 404, use mock
-      if (response.status === 404 || !response.ok) {
-        console.log('API não disponível, usando autenticação mock');
-        const mockData = await mockLogin(email, password);
-        console.log('Login mock bem-sucedido:', mockData);
-        
-        localStorage.setItem('token', mockData.token);
-        setUser(mockData.user);
-        return;
-      }
-
-      throw new Error('Erro no servidor');
+      console.log('API não disponível ou com erro, usando autenticação mock');
+      const mockData = await mockLogin(email, password);
+      console.log('Login mock bem-sucedido:', mockData);
+      
+      localStorage.setItem('token', mockData.token);
+      setUser(mockData.user);
 
     } catch (error) {
-      if (error instanceof Error && error.message.includes('fetch')) {
+      if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('NetworkError'))) {
         // Network error, try mock
         console.log('Erro de rede, tentando mock:', error);
         try {

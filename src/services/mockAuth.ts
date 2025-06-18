@@ -1,35 +1,35 @@
 
 // Mock authentication service for development/testing
 export interface MockUser {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: 'admin' | 'user' | 'viewer';
-  buildingId?: number;
-  unitId?: number;
+  buildingId?: string;
+  unitId?: string;
 }
 
 const mockUsers: MockUser[] = [
   {
-    id: 1,
+    id: '1',
     name: 'Administrador',
     email: 'admin@demo.com',
     role: 'admin'
   },
   {
-    id: 2,
+    id: '2',
     name: 'Usuário Demo',
     email: 'user@demo.com',
     role: 'user',
-    buildingId: 1,
-    unitId: 101
+    buildingId: '1',
+    unitId: '101'
   },
   {
-    id: 3,
+    id: '3',
     name: 'Visualizador Demo',
     email: 'viewer@demo.com',
     role: 'viewer',
-    buildingId: 1
+    buildingId: '1'
   }
 ];
 
