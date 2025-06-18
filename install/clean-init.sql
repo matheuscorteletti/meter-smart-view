@@ -1,5 +1,6 @@
 
 
+
 -- ============================================
 -- SISTEMA DE MEDIDORES - INICIALIZAÇÃO LIMPA
 -- ============================================
@@ -97,32 +98,15 @@ CREATE TABLE IF NOT EXISTS readings (
 -- ÍNDICES PARA PERFORMANCE
 -- ============================================
 
--- Criar índices (remover se já existir)
-DROP INDEX IF EXISTS idx_users_email ON users;
+-- Criar índices para melhor performance
 CREATE INDEX idx_users_email ON users(email);
-
-DROP INDEX IF EXISTS idx_users_building ON users;
 CREATE INDEX idx_users_building ON users(building_id);
-
-DROP INDEX IF EXISTS idx_users_role ON users;
 CREATE INDEX idx_users_role ON users(role);
-
-DROP INDEX IF EXISTS idx_units_building ON units;
 CREATE INDEX idx_units_building ON units(building_id);
-
-DROP INDEX IF EXISTS idx_meters_unit ON meters;
 CREATE INDEX idx_meters_unit ON meters(unit_id);
-
-DROP INDEX IF EXISTS idx_meters_type ON meters;
 CREATE INDEX idx_meters_type ON meters(type);
-
-DROP INDEX IF EXISTS idx_readings_meter ON readings;
 CREATE INDEX idx_readings_meter ON readings(meter_id);
-
-DROP INDEX IF EXISTS idx_readings_date ON readings;
 CREATE INDEX idx_readings_date ON readings(reading_date);
-
-DROP INDEX IF EXISTS idx_readings_alert ON readings;
 CREATE INDEX idx_readings_alert ON readings(is_alert);
 
 -- ============================================
@@ -161,4 +145,5 @@ SELECT
 SELECT 'ADMIN CRIADO:' as info, id, name, email, role, created_at FROM users WHERE role = 'admin';
 
 COMMIT;
+
 

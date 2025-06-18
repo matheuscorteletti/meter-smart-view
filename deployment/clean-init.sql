@@ -1,5 +1,6 @@
 
 
+
 -- ============================================
 -- SISTEMA DE MEDIDORES - INICIALIZAÇÃO LIMPA
 -- ============================================
@@ -59,4 +60,5 @@ SELECT
 SELECT 'ADMINISTRADOR DISPONÍVEL:' as info, id, name, email, role, created_at FROM users WHERE role = 'admin';
 
 COMMIT;
+
 
