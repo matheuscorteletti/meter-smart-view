@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types';
 
@@ -59,6 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Tentando fazer login com:', { email });
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -67,14 +70,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email, password }),
       });
 
+      console.log('Resposta recebida:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
+      });
+
+      // Verificar se a resposta tem conteúdo antes de tentar fazer parse
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro no login');
+        let errorMessage = 'Erro no login';
+        
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (parseError) {
+            console.error('Erro ao fazer parse do JSON de erro:', parseError);
+            // Se não conseguir fazer parse do JSON, usar o status da resposta
+            errorMessage = `Erro ${response.status}: ${response.statusText}`;
+          }
+        } else {
+          // Se não for JSON, tentar ler como texto
+          try {
+            const errorText = await response.text();
+            console.log('Resposta de erro como texto:', errorText);
+            errorMessage = errorText || errorMessage;
+          } catch (textError) {
+            console.error('Erro ao ler resposta como texto:', textError);
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
-      const data = await response.json();
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      // Verificar se a resposta de sucesso tem conteúdo JSON
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        console.log('Dados de login recebidos:', data);
+        
+        if (data.token && data.user) {
+          localStorage.setItem('token', data.token);
+          setUser(data.user);
+        } else {
+          throw new Error('Resposta inválida do servidor');
+        }
+      } else {
+        throw new Error('Resposta do servidor não é JSON válido');
+      }
+
     } catch (error) {
       console.error('Erro no login:', error);
       throw error;
