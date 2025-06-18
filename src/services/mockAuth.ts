@@ -11,6 +11,12 @@ export interface MockUser {
 
 const mockUsers: MockUser[] = [
   {
+    id: 'admin-main',
+    name: 'Administrador Principal',
+    email: 'admin@medidores.local',
+    role: 'admin'
+  },
+  {
     id: '1',
     name: 'Administrador',
     email: 'admin@demo.com',
@@ -39,7 +45,13 @@ export const mockLogin = async (email: string, password: string): Promise<{ toke
   
   const user = mockUsers.find(u => u.email === email);
   
-  if (!user || password !== 'demo123') {
+  if (!user) {
+    throw new Error('Email ou senha incorretos');
+  }
+  
+  // Check password - admin@medidores.local uses admin123, others use demo123
+  const expectedPassword = email === 'admin@medidores.local' ? 'admin123' : 'demo123';
+  if (password !== expectedPassword) {
     throw new Error('Email ou senha incorretos');
   }
   
