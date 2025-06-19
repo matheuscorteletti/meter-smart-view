@@ -10,6 +10,8 @@ const { sendEmail } = require('../services/emailService');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+console.log('Carregando rotas de autenticação...');
+
 // Validações
 const loginSchema = Joi.object({
   email: Joi.string().email().required(),
@@ -22,6 +24,8 @@ const forgotPasswordSchema = Joi.object({
 
 // Login
 router.post('/login', async (req, res) => {
+  console.log('Rota de login acessada:', req.body);
+  
   try {
     const { error } = loginSchema.validate(req.body);
     if (error) {
@@ -130,5 +134,7 @@ router.post('/forgot-password', async (req, res) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
+
+console.log('Rotas de autenticação carregadas - /login e /forgot-password');
 
 module.exports = router;
