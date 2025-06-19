@@ -11,7 +11,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+// Corrigindo a URL base para usar o IP correto
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -26,6 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('BASE_URL configurada:', BASE_URL);
+    console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+    
     const token = localStorage.getItem('token');
     if (token) {
       fetchUserProfile(token);
@@ -72,7 +76,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       console.log('Tentando fazer login com:', { email });
-      console.log('URL da API:', `${BASE_URL}/auth/login`);
+      console.log('BASE_URL atual:', BASE_URL);
+      console.log('URL da API de login:', `${BASE_URL}/auth/login`);
       
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
@@ -101,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Erro no login:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando.');
+        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://192.168.100.234:3001');
       }
       throw error;
     }
