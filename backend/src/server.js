@@ -45,6 +45,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check ANTES das outras rotas
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // Verificar se os arquivos de rota existem
 console.log('Carregando rotas...');
 
@@ -56,7 +61,11 @@ try {
   const meterRoutes = require('./routes/meters');
   const readingRoutes = require('./routes/readings');
 
-  // Rotas
+  // Debug: verificar se as rotas foram carregadas
+  console.log('Auth routes carregadas:', typeof authRoutes);
+  console.log('User routes carregadas:', typeof userRoutes);
+
+  // Rotas com prefixos corretos
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/buildings', buildingRoutes);
@@ -64,36 +73,47 @@ try {
   app.use('/api/meters', meterRoutes);
   app.use('/api/readings', readingRoutes);
 
-  console.log('Rotas carregadas com sucesso!');
+  console.log('Rotas registradas:');
+  console.log('- /api/auth/*');
+  console.log('- /api/users/*');
+  console.log('- /api/buildings/*');
+  console.log('- /api/units/*');
+  console.log('- /api/meters/*');
+  console.log('- /api/readings/*');
+
 } catch (error) {
   console.error('Erro ao carregar rotas:', error);
 }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
 // Lista todas as rotas registradas (para debug)
 app.get('/api/routes', (req, res) => {
   const routes = [];
-  app._router.stack.forEach((middleware) => {
-    if (middleware.route) {
-      routes.push({
-        path: middleware.route.path,
-        methods: Object.keys(middleware.route.methods)
-      });
-    } else if (middleware.name === 'router') {
-      middleware.handle.stack.forEach((handler) => {
-        if (handler.route) {
-          routes.push({
-            path: handler.route.path,
-            methods: Object.keys(handler.route.methods)
-          });
+  
+  function extractRoutes(stack, basePath = '') {
+    stack.forEach((layer) => {
+      if (layer.route) {
+        // Rota direta
+        routes.push({
+          path: basePath + layer.route.path,
+          methods: Object.keys(layer.route.methods)
+        });
+      } else if (layer.name === 'router' && layer.regexp) {
+        // Router middleware
+        const routerPath = layer.regexp.source
+          .replace('\\/?', '')
+          .replace('(?=\\/|$)', '')
+          .replace('^', '')
+          .replace('\\/', '/')
+          .replace(/\\\//g, '/');
+        
+        if (layer.handle && layer.handle.stack) {
+          extractRoutes(layer.handle.stack, routerPath);
         }
-      });
-    }
-  });
+      }
+    });
+  }
+  
+  extractRoutes(app._router.stack);
   res.json({ routes });
 });
 
@@ -118,4 +138,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`CORS configurado para aceitar: ${process.env.FRONTEND_URL || 'http://localhost:3000'} e Lovable`);
   console.log(`API acessível em: http://192.168.100.234:${PORT}/api`);
   console.log('Testando rotas disponíveis em: http://192.168.100.234:' + PORT + '/api/routes');
+  console.log('Rota de login disponível em: http://192.168.100.234:' + PORT + '/api/auth/login');
 });
