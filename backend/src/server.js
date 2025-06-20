@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const app = express();
@@ -10,6 +11,9 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware de segurança
 app.use(helmet());
+
+// Middleware para cookies
+app.use(cookieParser());
 
 // Configuração de CORS mais permissiva para desenvolvimento
 app.use(cors({
@@ -23,7 +27,7 @@ app.use(cors({
     'http://192.168.100.234:3001',
     /^https?:\/\/.*$/
   ],
-  credentials: true,
+  credentials: true, // IMPORTANTE: permitir cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -74,7 +78,7 @@ try {
   app.use('/api/readings', readingRoutes);
 
   console.log('Rotas registradas:');
-  console.log('- /api/auth/*');
+  console.log('- /api/auth/* (incluindo POST /login, POST /logout, POST /forgot-password)');
   console.log('- /api/users/*');
   console.log('- /api/buildings/*');
   console.log('- /api/units/*');
@@ -135,8 +139,8 @@ app.use('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`CORS configurado para aceitar: ${process.env.FRONTEND_URL || 'http://localhost:3000'} e Lovable`);
+  console.log(`CORS configurado com credentials: true`);
   console.log(`API acessível em: http://192.168.100.234:${PORT}/api`);
   console.log('Testando rotas disponíveis em: http://192.168.100.234:' + PORT + '/api/routes');
-  console.log('Rota de login disponível em: http://192.168.100.234:' + PORT + '/api/auth/login');
+  console.log('Rota de login disponível em: http://192.168.100.234:' + PORT + '/api/auth/login (POST)');
 });

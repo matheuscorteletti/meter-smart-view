@@ -1,17 +1,15 @@
 
 import { useState, useEffect } from 'react';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
 
 export const useApi = () => {
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('token');
-    
     const config: RequestInit = {
       ...options,
+      credentials: 'include', // Incluir cookies automaticamente
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
     };

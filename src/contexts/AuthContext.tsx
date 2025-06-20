@@ -11,7 +11,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Corrigindo a URL base para usar o IP correto
+// Corrigindo a URL base para usar o IP correto em produção
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
 
 export const useAuth = () => {
@@ -29,45 +29,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('BASE_URL configurada:', BASE_URL);
     console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+    console.log('Mode:', import.meta.env.MODE);
     
-    const token = localStorage.getItem('token');
-    if (token) {
-      fetchUserProfile(token);
-    } else {
-      setIsLoading(false);
-    }
+    // Verificar se há token salvo (agora em cookies)
+    checkAuthStatus();
   }, []);
 
-  const fetchUserProfile = async (token: string) => {
+  const checkAuthStatus = async () => {
     try {
-      console.log('Buscando perfil do usuário...');
-      console.log('URL da API:', `${BASE_URL}/users/profile`);
+      console.log('Verificando status de autenticação...');
       
       const response = await fetch(`${BASE_URL}/users/profile`, {
         method: 'GET',
+        credentials: 'include', // Incluir cookies na requisição
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
 
-      console.log('Resposta da API de perfil:', {
+      console.log('Resposta da verificação de auth:', {
         status: response.status,
-        statusText: response.statusText,
-        url: response.url
+        statusText: response.statusText
       });
 
       if (response.ok) {
         const userData = await response.json();
-        console.log('Perfil carregado:', userData);
+        console.log('Usuário autenticado:', userData);
         setUser(userData);
       } else {
-        console.error('Erro ao buscar perfil:', response.statusText);
-        localStorage.removeItem('token');
+        console.log('Usuário não autenticado');
       }
     } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      localStorage.removeItem('token');
+      console.error('Erro ao verificar autenticação:', error);
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
+        credentials: 'include', // Incluir cookies na requisição
         headers: {
           'Content-Type': 'application/json',
         },
@@ -90,14 +84,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Resposta da API de login:', {
         status: response.status,
         statusText: response.statusText,
-        url: response.url
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log('Login bem-sucedido:', data);
-        
-        localStorage.setItem('token', data.token);
         setUser(data.user);
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Erro de comunicação com o servidor' }));
@@ -106,15 +99,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Erro no login:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
-        throw new Error('Não foi possível conectar ao servidor. Verifique se o backend está rodando em http://192.168.100.234:3001');
+        throw new Error(`Não foi possível conectar ao servidor. Verifique se o backend está rodando em ${BASE_URL}`);
       }
       throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await fetch(`${BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    } finally {
+      setUser(null);
+    }
   };
 
   return (

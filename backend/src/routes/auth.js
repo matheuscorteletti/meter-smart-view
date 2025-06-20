@@ -24,7 +24,7 @@ const forgotPasswordSchema = Joi.object({
 
 // Login
 router.post('/login', async (req, res) => {
-  console.log('Rota de login acessada:', req.body);
+  console.log('Rota de login acessada (POST):', req.body);
   
   try {
     const { error } = loginSchema.validate(req.body);
@@ -59,9 +59,18 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Resposta (sem senha)
+    // Configurar cookie HttpOnly
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+    });
+
+    console.log('Login realizado com sucesso para:', email);
+
+    // Resposta (sem senha e sem token no body)
     res.json({
-      token,
       user: {
         id: user.id,
         name: user.name,
@@ -76,6 +85,19 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
+});
+
+// Logout
+router.post('/logout', (req, res) => {
+  console.log('Logout acessado');
+  
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+  
+  res.json({ message: 'Logout realizado com sucesso' });
 });
 
 // Esqueci minha senha
@@ -135,6 +157,6 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-console.log('Rotas de autenticação carregadas - /login e /forgot-password');
+console.log('Rotas de autenticação carregadas - /login, /logout e /forgot-password');
 
 module.exports = router;
