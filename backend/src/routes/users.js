@@ -7,22 +7,22 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Validações
+// Validações com email flexível para aceitar domínios locais
 const updateProfileSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
-  email: Joi.string().email().required()
+  email: Joi.string().email({ tlds: false }).required() // Permite domínios locais
 });
 
 const createUserSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: false }).required(), // Permite domínios locais
   password: Joi.string().min(6).required(),
   role: Joi.string().valid('admin', 'user').required()
 });
 
 const updateUserSchema = Joi.object({
   name: Joi.string().min(2).max(100).required(),
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: false }).required(), // Permite domínios locais
   password: Joi.string().min(6).optional(),
   role: Joi.string().valid('admin', 'user').required()
 });

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,14 +11,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 console.log('Carregando rotas de autenticação...');
 
-// Validações
+// Validações com email mais flexível para aceitar domínios locais
 const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().email({ tlds: false }).required(), // Permite domínios locais
   password: Joi.string().min(6).required()
 });
 
 const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email().required()
+  email: Joi.string().email({ tlds: false }).required() // Permite domínios locais
 });
 
 // Login
@@ -29,10 +28,12 @@ router.post('/login', async (req, res) => {
   try {
     const { error } = loginSchema.validate(req.body);
     if (error) {
+      console.log('Erro de validação:', error.details[0].message);
       return res.status(400).json({ error: error.details[0].message });
     }
 
     const { email, password } = req.body;
+    console.log('Email validado com sucesso:', email);
 
     // Buscar usuário
     const [users] = await pool.execute(
@@ -41,14 +42,17 @@ router.post('/login', async (req, res) => {
     );
 
     if (users.length === 0) {
+      console.log('Usuário não encontrado para email:', email);
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
     const user = users[0];
+    console.log('Usuário encontrado:', { id: user.id, email: user.email });
 
     // Verificar senha
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
+      console.log('Senha inválida para usuário:', email);
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
