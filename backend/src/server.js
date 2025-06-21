@@ -15,16 +15,19 @@ app.use(helmet());
 // Middleware para cookies
 app.use(cookieParser());
 
-// Configuração de CORS mais permissiva para desenvolvimento
+// Configuração de CORS mais robusta para produção
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://4029d73d-8548-4fe2-8eac-cc334a11ed89.lovableproject.com',
     /\.lovableproject\.com$/,
-    // Permitir qualquer origem durante desenvolvimento
+    // Para desenvolvimento local
     /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
     'http://192.168.100.234:3000',
     'http://192.168.100.234:3001',
+    // Para Docker
+    'http://frontend:3000',
+    'http://backend:3001',
     /^https?:\/\/.*$/
   ],
   credentials: true, // IMPORTANTE: permitir cookies
@@ -136,11 +139,15 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Rota não encontrada', path: req.originalUrl });
 });
 
+// IMPORTANTE: Escutar em 0.0.0.0 para aceitar conexões externas
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`CORS configurado com credentials: true`);
-  console.log(`API acessível em: http://192.168.100.234:${PORT}/api`);
-  console.log('Testando rotas disponíveis em: http://192.168.100.234:' + PORT + '/api/routes');
-  console.log('Rota de login disponível em: http://192.168.100.234:' + PORT + '/api/auth/login (POST)');
+  console.log(`API acessível em: http://0.0.0.0:${PORT}/api`);
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Modo PRODUÇÃO ativado');
+  }
+  console.log('Testando rotas disponíveis em: /api/routes');
+  console.log('Rota de login disponível em: /api/auth/login (POST)');
 });
