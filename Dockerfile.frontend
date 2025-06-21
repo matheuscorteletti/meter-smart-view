@@ -12,8 +12,14 @@ RUN npm install
 # Copiar o código fonte
 COPY . .
 
+# Build da aplicação para produção
+RUN npm run build
+
+# Instalar serve globalmente para servir arquivos estáticos
+RUN npm install -g serve
+
 # Expor a porta
 EXPOSE 3000
 
-# Comando para desenvolvimento/produção
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+# Comando para servir a pasta dist em produção
+CMD ["serve", "-s", "dist", "-l", "3000"]
