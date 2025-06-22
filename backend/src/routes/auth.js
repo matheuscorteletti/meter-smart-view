@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -34,6 +35,7 @@ router.post('/login', async (req, res) => {
 
     const { email, password } = req.body;
     console.log('Email validado com sucesso:', email);
+    console.log('Senha recebida (primeiros 3 chars):', password.substring(0, 3) + '***');
 
     // Buscar usuário
     const [users] = await pool.execute(
@@ -48,11 +50,26 @@ router.post('/login', async (req, res) => {
 
     const user = users[0];
     console.log('Usuário encontrado:', { id: user.id, email: user.email });
+    console.log('Hash no banco (primeiros 10 chars):', user.password_hash.substring(0, 10) + '...');
 
-    // Verificar senha
+    // TESTE MANUAL: Verificar se o hash é para "secret"
+    const testSecret = await bcrypt.compare('secret', user.password_hash);
+    console.log('Teste com senha "secret":', testSecret);
+    
+    // TESTE MANUAL: Verificar se o hash é para "admin123"
+    const testAdmin123 = await bcrypt.compare('admin123', user.password_hash);
+    console.log('Teste com senha "admin123":', testAdmin123);
+
+    // Verificar senha enviada
+    console.log('Iniciando comparação bcrypt...');
     const validPassword = await bcrypt.compare(password, user.password_hash);
+    console.log('Resultado da comparação bcrypt:', validPassword);
+    console.log('Senha enviada:', password);
+    console.log('Hash do banco:', user.password_hash);
+
     if (!validPassword) {
       console.log('Senha inválida para usuário:', email);
+      console.log('DIAGNÓSTICO: A senha enviada não confere com o hash do banco');
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
@@ -72,6 +89,9 @@ router.post('/login', async (req, res) => {
     });
 
     console.log('Login realizado com sucesso para:', email);
+    console.log('Cookie configurado com httpOnly:', true);
+    console.log('Cookie secure:', process.env.NODE_ENV === 'production');
+    console.log('Cookie sameSite:', 'lax');
 
     // Resposta (sem senha e sem token no body)
     res.json({
