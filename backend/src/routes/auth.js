@@ -80,18 +80,21 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Configurar cookie HttpOnly
-    res.cookie('auth_token', token, {
+    // Configurar cookie com secure: false para HTTP em Docker
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+      secure: false, // MUDANÇA: sempre false para permitir HTTP
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
-    });
+    };
+
+    res.cookie('auth_token', token, cookieOptions);
 
     console.log('Login realizado com sucesso para:', email);
-    console.log('Cookie configurado com httpOnly:', true);
-    console.log('Cookie secure:', process.env.NODE_ENV === 'production');
-    console.log('Cookie sameSite:', 'lax');
+    console.log('Cookie configurado com httpOnly:', cookieOptions.httpOnly);
+    console.log('Cookie secure:', cookieOptions.secure);
+    console.log('Cookie sameSite:', cookieOptions.sameSite);
+    console.log('Token JWT gerado:', token.substring(0, 20) + '...');
 
     // Resposta (sem senha e sem token no body)
     res.json({
@@ -117,7 +120,7 @@ router.post('/logout', (req, res) => {
   
   res.clearCookie('auth_token', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // MUDANÇA: sempre false para permitir HTTP
     sameSite: 'lax'
   });
   
