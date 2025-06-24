@@ -25,6 +25,9 @@ const forgotPasswordSchema = Joi.object({
 // Login
 router.post('/login', async (req, res) => {
   console.log('Rota de login acessada (POST):', req.body);
+  console.log('Headers da requisição:', req.headers);
+  console.log('Origin:', req.headers.origin);
+  console.log('Referer:', req.headers.referer);
   
   try {
     const { error } = loginSchema.validate(req.body);
@@ -50,26 +53,14 @@ router.post('/login', async (req, res) => {
 
     const user = users[0];
     console.log('Usuário encontrado:', { id: user.id, email: user.email });
-    console.log('Hash no banco (primeiros 10 chars):', user.password_hash.substring(0, 10) + '...');
-
-    // TESTE MANUAL: Verificar se o hash é para "secret"
-    const testSecret = await bcrypt.compare('secret', user.password_hash);
-    console.log('Teste com senha "secret":', testSecret);
-    
-    // TESTE MANUAL: Verificar se o hash é para "admin123"
-    const testAdmin123 = await bcrypt.compare('admin123', user.password_hash);
-    console.log('Teste com senha "admin123":', testAdmin123);
 
     // Verificar senha enviada
     console.log('Iniciando comparação bcrypt...');
     const validPassword = await bcrypt.compare(password, user.password_hash);
     console.log('Resultado da comparação bcrypt:', validPassword);
-    console.log('Senha enviada:', password);
-    console.log('Hash do banco:', user.password_hash);
 
     if (!validPassword) {
       console.log('Senha inválida para usuário:', email);
-      console.log('DIAGNÓSTICO: A senha enviada não confere com o hash do banco');
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
@@ -80,20 +71,30 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Configurar cookie com secure: false para HTTP em Docker
+    // Detectar se a requisição vem de HTTPS
+    const isHttps = req.headers['x-forwarded-proto'] === 'https' || 
+                   req.headers.referer?.startsWith('https://') ||
+                   req.secure;
+
+    console.log('Detecção HTTPS:', {
+      'x-forwarded-proto': req.headers['x-forwarded-proto'],
+      'referer': req.headers.referer,
+      'secure': req.secure,
+      'isHttps': isHttps
+    });
+
+    // Configurar cookie baseado no protocolo
     const cookieOptions = {
       httpOnly: true,
-      secure: false, // MUDANÇA: sempre false para permitir HTTP
-      sameSite: 'lax',
+      secure: isHttps, // Secure apenas se HTTPS
+      sameSite: isHttps ? 'none' : 'lax', // None para HTTPS cross-origin
       maxAge: 24 * 60 * 60 * 1000 // 24 horas
     };
 
     res.cookie('auth_token', token, cookieOptions);
 
     console.log('Login realizado com sucesso para:', email);
-    console.log('Cookie configurado com httpOnly:', cookieOptions.httpOnly);
-    console.log('Cookie secure:', cookieOptions.secure);
-    console.log('Cookie sameSite:', cookieOptions.sameSite);
+    console.log('Cookie configurado:', cookieOptions);
     console.log('Token JWT gerado:', token.substring(0, 20) + '...');
 
     // Resposta (sem senha e sem token no body)
@@ -118,10 +119,15 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   console.log('Logout acessado');
   
+  // Detectar se a requisição vem de HTTPS
+  const isHttps = req.headers['x-forwarded-proto'] === 'https' || 
+                 req.headers.referer?.startsWith('https://') ||
+                 req.secure;
+  
   res.clearCookie('auth_token', {
     httpOnly: true,
-    secure: false, // MUDANÇA: sempre false para permitir HTTP
-    sameSite: 'lax'
+    secure: isHttps,
+    sameSite: isHttps ? 'none' : 'lax'
   });
   
   res.json({ message: 'Logout realizado com sucesso' });

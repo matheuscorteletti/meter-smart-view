@@ -11,8 +11,23 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Corrigindo a URL base para usar o IP correto em produção
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
+// Use HTTPS em produção se estivermos em domínio HTTPS
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const isHttps = window.location.protocol === 'https:';
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isHttps && !isDev) {
+      // Em produção HTTPS, usar o mesmo domínio com /api
+      return `${window.location.protocol}//${window.location.host}/api`;
+    }
+  }
+  
+  // Fallback para desenvolvimento ou configuração manual
+  return import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
+};
+
+const BASE_URL = getBaseUrl();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -31,6 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('BASE_URL configurada:', BASE_URL);
     console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
     console.log('Mode:', import.meta.env.MODE);
+    console.log('Protocol:', typeof window !== 'undefined' ? window.location.protocol : 'N/A');
+    console.log('Host:', typeof window !== 'undefined' ? window.location.host : 'N/A');
     
     // Verificar se há token salvo (agora em cookies)
     checkAuthStatus();

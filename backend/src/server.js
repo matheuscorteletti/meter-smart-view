@@ -20,6 +20,7 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://4029d73d-8548-4fe2-8eac-cc334a11ed89.lovableproject.com',
+    'https://medidores.matheus.app.br', // Adicionar o domínio HTTPS de produção
     /\.lovableproject\.com$/,
     // Para desenvolvimento local
     /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
@@ -32,7 +33,8 @@ app.use(cors({
   ],
   credentials: true, // IMPORTANTE: permitir cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Forwarded-Proto'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 // Rate limiting
@@ -49,6 +51,9 @@ app.use(express.urlencoded({ extended: true }));
 // Log para debug das rotas
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  if (req.headers.origin) {
+    console.log('Origin:', req.headers.origin);
+  }
   next();
 });
 

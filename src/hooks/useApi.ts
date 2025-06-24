@@ -1,7 +1,23 @@
 
 import { useState, useEffect } from 'react';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
+// Use HTTPS em produção se estivermos em domínio HTTPS
+const getBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    const isHttps = window.location.protocol === 'https:';
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    if (isHttps && !isDev) {
+      // Em produção HTTPS, usar o mesmo domínio com /api
+      return `${window.location.protocol}//${window.location.host}/api`;
+    }
+  }
+  
+  // Fallback para desenvolvimento ou configuração manual
+  return import.meta.env.VITE_API_BASE_URL || 'http://192.168.100.234:3001/api';
+};
+
+const BASE_URL = getBaseUrl();
 
 export const useApi = () => {
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
