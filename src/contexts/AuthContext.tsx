@@ -27,6 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🚀 AuthProvider iniciado');
     console.log('BASE_URL configurada:', BASE_URL);
     console.log('VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
     console.log('Mode:', import.meta.env.MODE);
@@ -37,30 +38,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuthStatus = async () => {
     try {
-      console.log('Verificando status de autenticação...');
+      console.log('🔍 Verificando status de autenticação...');
       
       const response = await fetch(`${BASE_URL}/users/profile`, {
         method: 'GET',
-        credentials: 'include', // Incluir cookies na requisição
+        credentials: 'include', // CRUCIAL: Incluir cookies na requisição
         headers: {
           'Content-Type': 'application/json',
         },
       });
 
-      console.log('Resposta da verificação de auth:', {
+      console.log('📡 Resposta da verificação de auth:', {
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (response.ok) {
         const userData = await response.json();
-        console.log('Usuário autenticado:', userData);
+        console.log('✅ Usuário autenticado encontrado:', userData);
         setUser(userData);
       } else {
-        console.log('Usuário não autenticado');
+        console.log('❌ Usuário não autenticado (status:', response.status, ')');
+        const errorData = await response.json().catch(() => ({}));
+        console.log('Erro da API:', errorData);
       }
     } catch (error) {
-      console.error('Erro ao verificar autenticação:', error);
+      console.error('❌ Erro ao verificar autenticação:', error);
     } finally {
       setIsLoading(false);
     }
@@ -68,20 +72,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      console.log('Tentando fazer login com:', { email });
+      console.log('🔐 Tentando fazer login com:', { email });
       console.log('BASE_URL atual:', BASE_URL);
       console.log('URL da API de login:', `${BASE_URL}/auth/login`);
       
       const response = await fetch(`${BASE_URL}/auth/login`, {
         method: 'POST',
-        credentials: 'include', // Incluir cookies na requisição
+        credentials: 'include', // CRUCIAL: Incluir cookies na requisição
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('Resposta da API de login:', {
+      console.log('📡 Resposta da API de login:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
@@ -90,14 +94,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Login bem-sucedido:', data);
+        console.log('✅ Login bem-sucedido:', data);
         setUser(data.user);
+        
+        // Após login bem-sucedido, verificar se conseguimos acessar o profile
+        console.log('🔄 Testando acesso ao profile após login...');
+        setTimeout(async () => {
+          try {
+            const profileResponse = await fetch(`${BASE_URL}/users/profile`, {
+              method: 'GET',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            console.log('📋 Teste de acesso ao profile:', {
+              status: profileResponse.status,
+              statusText: profileResponse.statusText
+            });
+          } catch (err) {
+            console.error('❌ Erro no teste de profile:', err);
+          }
+        }, 1000);
+        
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Erro de comunicação com o servidor' }));
         throw new Error(errorData.error || `Erro HTTP ${response.status}`);
       }
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('❌ Erro no login:', error);
       if (error instanceof TypeError && error.message === 'Failed to fetch') {
         throw new Error(`Não foi possível conectar ao servidor. Verifique se o backend está rodando em ${BASE_URL}`);
       }
@@ -107,15 +132,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
+      console.log('🚪 Fazendo logout...');
       await fetch(`${BASE_URL}/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'include', // CRUCIAL: Incluir cookies na requisição
         headers: {
           'Content-Type': 'application/json',
         },
       });
+      console.log('✅ Logout realizado com sucesso');
     } catch (error) {
-      console.error('Erro no logout:', error);
+      console.error('❌ Erro no logout:', error);
     } finally {
       setUser(null);
     }
