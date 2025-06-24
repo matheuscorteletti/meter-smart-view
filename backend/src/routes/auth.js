@@ -28,6 +28,8 @@ router.post('/login', async (req, res) => {
   console.log('Headers da requisição:', req.headers);
   console.log('Origin:', req.headers.origin);
   console.log('Referer:', req.headers.referer);
+  console.log('CF-Visitor:', req.headers['cf-visitor']);
+  console.log('X-Forwarded-Proto:', req.headers['x-forwarded-proto']);
   
   try {
     const { error } = loginSchema.validate(req.body);
@@ -71,24 +73,27 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Detectar se a requisição vem de HTTPS
-    const isHttps = req.headers['x-forwarded-proto'] === 'https' || 
+    // Detectar HTTPS com Cloudflare
+    const isHttps = req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor']).scheme === 'https' ||
+                   req.headers['x-forwarded-proto'] === 'https' || 
                    req.headers.referer?.startsWith('https://') ||
                    req.secure;
 
-    console.log('Detecção HTTPS:', {
+    console.log('Detecção HTTPS com Cloudflare:', {
+      'cf-visitor': req.headers['cf-visitor'],
       'x-forwarded-proto': req.headers['x-forwarded-proto'],
       'referer': req.headers.referer,
       'secure': req.secure,
       'isHttps': isHttps
     });
 
-    // Configurar cookie baseado no protocolo
+    // Configurar cookie para funcionar com Cloudflare
     const cookieOptions = {
       httpOnly: true,
-      secure: isHttps, // Secure apenas se HTTPS
-      sameSite: isHttps ? 'none' : 'lax', // None para HTTPS cross-origin
-      maxAge: 24 * 60 * 60 * 1000 // 24 horas
+      secure: isHttps, // Secure se HTTPS
+      sameSite: isHttps ? 'none' : 'lax', // None necessário para cross-origin HTTPS
+      maxAge: 24 * 60 * 60 * 1000, // 24 horas
+      domain: isHttps ? '.matheus.app.br' : undefined // Domain para subdomínios
     };
 
     res.cookie('auth_token', token, cookieOptions);
@@ -119,15 +124,17 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   console.log('Logout acessado');
   
-  // Detectar se a requisição vem de HTTPS
-  const isHttps = req.headers['x-forwarded-proto'] === 'https' || 
+  // Detectar HTTPS com Cloudflare
+  const isHttps = req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor']).scheme === 'https' ||
+                 req.headers['x-forwarded-proto'] === 'https' || 
                  req.headers.referer?.startsWith('https://') ||
                  req.secure;
   
   res.clearCookie('auth_token', {
     httpOnly: true,
     secure: isHttps,
-    sameSite: isHttps ? 'none' : 'lax'
+    sameSite: isHttps ? 'none' : 'lax',
+    domain: isHttps ? '.matheus.app.br' : undefined
   });
   
   res.json({ message: 'Logout realizado com sucesso' });

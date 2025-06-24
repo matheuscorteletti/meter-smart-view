@@ -9,18 +9,22 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Confiar no proxy (Cloudflare)
+app.set('trust proxy', true);
+
 // Middleware de segurança
 app.use(helmet());
 
 // Middleware para cookies
 app.use(cookieParser());
 
-// Configuração de CORS mais robusta para produção
+// Configuração de CORS otimizada para Cloudflare
 app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'https://4029d73d-8548-4fe2-8eac-cc334a11ed89.lovableproject.com',
-    'https://medidores.matheus.app.br', // Adicionar o domínio HTTPS de produção
+    'https://medidores.matheus.app.br', // Domínio principal
+    'https://*.matheus.app.br', // Subdomínios
     /\.lovableproject\.com$/,
     // Para desenvolvimento local
     /^http:\/\/192\.168\.\d+\.\d+:\d+$/,
@@ -28,12 +32,11 @@ app.use(cors({
     'http://192.168.100.234:3001',
     // Para Docker
     'http://frontend:3000',
-    'http://backend:3001',
-    /^https?:\/\/.*$/
+    'http://backend:3001'
   ],
   credentials: true, // IMPORTANTE: permitir cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Forwarded-Proto'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Forwarded-Proto', 'CF-Visitor', 'CF-Ray'],
   exposedHeaders: ['Set-Cookie']
 }));
 
