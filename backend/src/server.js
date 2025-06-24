@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -40,10 +39,21 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
-// Rate limiting
+// Rate limiting configurado para Cloudflare
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100 // limite de 100 requests por IP
+  max: 100, // limite de 100 requests por IP
+  keyGenerator: (req) => {
+    // Usar o IP real do Cloudflare
+    return req.headers['cf-connecting-ip'] || 
+           req.headers['x-forwarded-for']?.split(',')[0] || 
+           req.ip || 
+           req.connection.remoteAddress;
+  },
+  skip: (req) => {
+    // Pular rate limiting para health checks
+    return req.url === '/api/health';
+  }
 });
 app.use(limiter);
 

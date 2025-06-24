@@ -28,12 +28,12 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     if (start_date) {
-      whereClause += ' AND r.date >= ?';
+      whereClause += ' AND r.reading_date >= ?';
       params.push(start_date);
     }
 
     if (end_date) {
-      whereClause += ' AND r.date <= ?';
+      whereClause += ' AND r.reading_date <= ?';
       params.push(end_date);
     }
 
@@ -44,7 +44,7 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 
     const [readings] = await pool.execute(`
-      SELECT r.id, r.meter_id, r.reading, r.consumption, r.date, r.is_alert, 
+      SELECT r.id, r.meter_id, r.reading, r.consumption, r.reading_date as date, r.is_alert, 
              r.created_at, r.updated_at,
              m.type as meter_type, m.threshold,
              u.number as unit_number, u.floor as unit_floor,
@@ -54,7 +54,7 @@ router.get('/', authenticateToken, async (req, res) => {
       LEFT JOIN units u ON m.unit_id = u.id
       LEFT JOIN buildings b ON u.building_id = b.id
       WHERE ${whereClause}
-      ORDER BY r.date DESC, r.created_at DESC
+      ORDER BY r.reading_date DESC, r.created_at DESC
       LIMIT ? OFFSET ?
     `, [...params, parseInt(limit), offset]);
 
@@ -103,7 +103,7 @@ router.get('/meter/:meterId', authenticateToken, async (req, res) => {
     }
 
     const [readings] = await pool.execute(`
-      SELECT r.id, r.meter_id, r.reading, r.consumption, r.date, r.is_alert, 
+      SELECT r.id, r.meter_id, r.reading, r.consumption, r.reading_date as date, r.is_alert, 
              r.created_at, r.updated_at,
              m.type as meter_type, m.threshold,
              u.number as unit_number, u.floor as unit_floor,
@@ -113,7 +113,7 @@ router.get('/meter/:meterId', authenticateToken, async (req, res) => {
       LEFT JOIN units u ON m.unit_id = u.id
       LEFT JOIN buildings b ON u.building_id = b.id
       WHERE r.meter_id = ?
-      ORDER BY r.date DESC, r.created_at DESC
+      ORDER BY r.reading_date DESC, r.created_at DESC
       LIMIT ? OFFSET ?
     `, [req.params.meterId, parseInt(limit), offset]);
 
@@ -141,7 +141,7 @@ router.get('/meter/:meterId', authenticateToken, async (req, res) => {
 router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const [readings] = await pool.execute(`
-      SELECT r.id, r.meter_id, r.reading, r.consumption, r.date, r.is_alert, 
+      SELECT r.id, r.meter_id, r.reading, r.consumption, r.reading_date as date, r.is_alert, 
              r.created_at, r.updated_at,
              m.type as meter_type, m.threshold,
              u.number as unit_number, u.floor as unit_floor,
