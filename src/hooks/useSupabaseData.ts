@@ -25,6 +25,9 @@ export const useBuildings = () => {
         active: building.active,
       })) as Building[];
     },
+    staleTime: 0, // Dados sempre considerados "stale"
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 };
 
@@ -57,6 +60,9 @@ export const useUnits = (buildingId?: string) => {
         active: unit.active,
       })) as Unit[];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 };
 
@@ -219,6 +225,7 @@ export const useBuildingMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['buildings'] });
+      queryClient.refetchQueries({ queryKey: ['buildings'] });
     },
   });
 };
@@ -275,6 +282,7 @@ export const useUnitMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.refetchQueries({ queryKey: ['units'] });
     },
   });
 };
@@ -337,6 +345,7 @@ export const useMeterMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meters'] });
+      queryClient.refetchQueries({ queryKey: ['meters'] });
     },
   });
 };
@@ -383,6 +392,7 @@ export const useReadingMutation = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['readings'] });
+      queryClient.refetchQueries({ queryKey: ['readings'] });
     },
   });
 };

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building2, Home, Zap, Droplets, AlertTriangle, TrendingUp, Users, Clock, Database } from 'lucide-react';
 import { useBuildings, useUnits, useMeters, useReadings } from '@/hooks/useSupabaseData';
+import RefreshButton from '@/components/ui/refresh-button';
 import BuildingManagement from './BuildingManagement';
 import UnitManagement from './UnitManagement';
 import MeterManagement from './MeterManagement';
@@ -59,9 +60,12 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-        <p className="text-gray-600">Gerencie todo o sistema de medidores</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
+          <p className="text-gray-600">Gerencie todo o sistema de medidores</p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* Cards de estatísticas */}
