@@ -14,13 +14,252 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      buildings: {
+        Row: {
+          active: boolean | null
+          address: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          address: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          address?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meters: {
+        Row: {
+          active: boolean | null
+          brand: string | null
+          calculation_digits: number
+          created_at: string
+          id: string
+          initial_reading: number
+          installation_date: string | null
+          model: string | null
+          multiplier: number
+          serial_number: string
+          threshold: number
+          total_digits: number
+          type: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          brand?: string | null
+          calculation_digits?: number
+          created_at?: string
+          id?: string
+          initial_reading?: number
+          installation_date?: string | null
+          model?: string | null
+          multiplier?: number
+          serial_number: string
+          threshold?: number
+          total_digits?: number
+          type: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          brand?: string | null
+          calculation_digits?: number
+          created_at?: string
+          id?: string
+          initial_reading?: number
+          installation_date?: string | null
+          model?: string | null
+          multiplier?: number
+          serial_number?: string
+          threshold?: number
+          total_digits?: number
+          type?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meters_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          active: boolean | null
+          building_id: string | null
+          created_at: string
+          id: string
+          name: string
+          role: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          building_id?: string | null
+          created_at?: string
+          id: string
+          name: string
+          role?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          building_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      readings: {
+        Row: {
+          alert_reason: string | null
+          consumption: number
+          created_at: string
+          id: string
+          is_alert: boolean | null
+          meter_id: string
+          notes: string | null
+          reader_id: string | null
+          reading: number
+          reading_date: string
+          updated_at: string
+        }
+        Insert: {
+          alert_reason?: string | null
+          consumption?: number
+          created_at?: string
+          id?: string
+          is_alert?: boolean | null
+          meter_id: string
+          notes?: string | null
+          reader_id?: string | null
+          reading: number
+          reading_date: string
+          updated_at?: string
+        }
+        Update: {
+          alert_reason?: string | null
+          consumption?: number
+          created_at?: string
+          id?: string
+          is_alert?: boolean | null
+          meter_id?: string
+          notes?: string | null
+          reader_id?: string | null
+          reading?: number
+          reading_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "readings_meter_id_fkey"
+            columns: ["meter_id"]
+            isOneToOne: false
+            referencedRelation: "meters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          active: boolean | null
+          building_id: string
+          created_at: string
+          floor: string
+          id: string
+          number: string
+          owner_email: string | null
+          owner_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          building_id: string
+          created_at?: string
+          floor: string
+          id?: string
+          number: string
+          owner_email?: string | null
+          owner_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          building_id?: string
+          created_at?: string
+          floor?: string
+          id?: string
+          number?: string
+          owner_email?: string | null
+          owner_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
