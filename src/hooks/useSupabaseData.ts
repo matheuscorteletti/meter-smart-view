@@ -172,7 +172,20 @@ export const useBuildingMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (building: Partial<Building> & { id?: string }) => {
+    mutationFn: async (building: Partial<Building> & { id?: string; delete?: boolean }) => {
+      if (building.delete && building.id) {
+        // Delete - marcar como inativo em vez de deletar
+        const { data, error } = await supabase
+          .from('buildings')
+          .update({ active: false })
+          .eq('id', building.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+      
       const buildingData = {
         name: building.name,
         address: building.address,
@@ -214,7 +227,20 @@ export const useUnitMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (unit: Partial<Unit> & { id?: string }) => {
+    mutationFn: async (unit: Partial<Unit> & { id?: string; delete?: boolean }) => {
+      if (unit.delete && unit.id) {
+        // Delete - marcar como inativo em vez de deletar
+        const { data, error } = await supabase
+          .from('units')
+          .update({ active: false })
+          .eq('id', unit.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+      
       const unitData = {
         building_id: unit.buildingId,
         number: unit.number,

@@ -1,111 +1,149 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Building, Unit } from '@/types';
-import { getBuildings, getUnits, saveUnits } from '@/lib/storage';
-import { Home, Plus, Building2, Edit } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import { useBuildings, useUnits, useUnitMutation } from '@/hooks/useSupabaseData';
+import { useToast } from '@/hooks/use-toast';
+
+interface UnitFormData {
+  buildingId: string;
+  number: string;
+  floor: string;
+  ownerName: string;
+  ownerEmail: string;
+}
 
 const UnitManagement = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
+  const { data: buildings = [] } = useBuildings();
+  const { data: units = [] } = useUnits();
+  const unitMutation = useUnitMutation();
+  const { toast } = useToast();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [formData, setFormData] = useState({ buildingId: '', number: '', floor: '' });
+  const [editingUnit, setEditingUnit] = useState<any>(null);
+  const [formData, setFormData] = useState<UnitFormData>({
+    buildingId: '',
+    number: '',
+    floor: '',
+    ownerName: '',
+    ownerEmail: ''
+  });
 
-  useEffect(() => {
-    const buildingsData = getBuildings();
-    const unitsData = getUnits();
-    
-    setBuildings(buildingsData);
-    
-    // Adicionar nome do edifício às unidades
-    const unitsWithBuildingName = unitsData.map(unit => ({
-      ...unit,
-      buildingName: buildingsData.find(b => b.id === unit.buildingId)?.name || 'N/A'
-    }));
-    
-    setUnits(unitsWithBuildingName);
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newUnit: Unit = {
-      id: `unit-${Date.now()}`,
-      buildingId: formData.buildingId,
-      number: formData.number,
-      floor: formData.floor,
-    };
-
-    const updatedUnits = [...units.filter(u => !u.buildingName), newUnit];
-    const unitsWithBuildingName = updatedUnits.map(unit => ({
-      ...unit,
-      buildingName: buildings.find(b => b.id === unit.buildingId)?.name || 'N/A'
-    }));
-    
-    setUnits(unitsWithBuildingName);
-    saveUnits(updatedUnits);
-    
-    setFormData({ buildingId: '', number: '', floor: '' });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Unidade cadastrada",
-      description: "Unidade adicionada com sucesso!",
-    });
+    try {
+      await unitMutation.mutateAsync({
+        buildingId: formData.buildingId,
+        number: formData.number,
+        floor: formData.floor,
+        ownerName: formData.ownerName,
+        ownerEmail: formData.ownerEmail,
+      });
+      
+      setFormData({
+        buildingId: '',
+        number: '',
+        floor: '',
+        ownerName: '',
+        ownerEmail: ''
+      });
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Unidade cadastrada",
+        description: "Unidade adicionada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível cadastrar a unidade.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEdit = (unit: Unit) => {
+  const handleEdit = (unit: any) => {
     setEditingUnit(unit);
-    setFormData({ 
-      buildingId: unit.buildingId, 
-      number: unit.number, 
-      floor: unit.floor 
+    setFormData({
+      buildingId: unit.buildingId,
+      number: unit.number,
+      floor: unit.floor,
+      ownerName: unit.ownerName || '',
+      ownerEmail: unit.ownerEmail || ''
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingUnit) return;
 
-    const updatedUnitsRaw = units.filter(u => !u.buildingName).map(unit =>
-      unit.id === editingUnit.id
-        ? { ...unit, buildingId: formData.buildingId, number: formData.number, floor: formData.floor }
-        : unit
-    );
+    try {
+      await unitMutation.mutateAsync({
+        id: editingUnit.id,
+        buildingId: formData.buildingId,
+        number: formData.number,
+        floor: formData.floor,
+        ownerName: formData.ownerName,
+        ownerEmail: formData.ownerEmail,
+      });
+      
+      setFormData({
+        buildingId: '',
+        number: '',
+        floor: '',
+        ownerName: '',
+        ownerEmail: ''
+      });
+      setEditingUnit(null);
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Unidade atualizada",
+        description: "Unidade editada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar a unidade.",
+        variant: "destructive",
+      });
+    }
+  };
 
-    const unitsWithBuildingName = updatedUnitsRaw.map(unit => ({
-      ...unit,
-      buildingName: buildings.find(b => b.id === unit.buildingId)?.name || 'N/A'
-    }));
-
-    setUnits(unitsWithBuildingName);
-    saveUnits(updatedUnitsRaw);
-    
-    setFormData({ buildingId: '', number: '', floor: '' });
-    setEditingUnit(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Unidade atualizada",
-      description: "Unidade editada com sucesso!",
-    });
+  const handleDelete = async (unit: any) => {
+    try {
+      await unitMutation.mutateAsync({
+        id: unit.id,
+        delete: true,
+      });
+      
+      toast({
+        title: "Unidade removida",
+        description: "Unidade removida com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível remover a unidade.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestão de Unidades</h2>
-          <p className="text-gray-600">Cadastre e gerencie unidades dos edifícios</p>
+          <h2 className="text-2xl font-bold text-gray-900">Gerenciamento de Unidades</h2>
+          <p className="text-gray-600">Gerencie as unidades dos edifícios</p>
         </div>
         
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -121,8 +159,11 @@ const UnitManagement = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="building">Edifício</Label>
-                <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value })}>
+                <Label htmlFor="buildingId">Edifício</Label>
+                <Select
+                  value={formData.buildingId}
+                  onValueChange={(value) => setFormData({...formData, buildingId: value})}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um edifício" />
                   </SelectTrigger>
@@ -135,27 +176,49 @@ const UnitManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="number">Número da Unidade</Label>
-                <Input
-                  id="number"
-                  value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                  placeholder="Ex: 101, 205, Sala A"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="number">Número</Label>
+                  <Input
+                    id="number"
+                    value={formData.number}
+                    onChange={(e) => setFormData({...formData, number: e.target.value})}
+                    placeholder="Ex: 101"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="floor">Andar</Label>
+                  <Input
+                    id="floor"
+                    value={formData.floor}
+                    onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                    placeholder="Ex: 1º"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ownerName">Nome do Proprietário</Label>
+                  <Input
+                    id="ownerName"
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ownerEmail">Email do Proprietário</Label>
+                  <Input
+                    id="ownerEmail"
+                    type="email"
+                    value={formData.ownerEmail}
+                    onChange={(e) => setFormData({...formData, ownerEmail: e.target.value})}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="floor">Andar</Label>
-                <Input
-                  id="floor"
-                  value={formData.floor}
-                  onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                  placeholder="Ex: 1, 2, Térreo"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={!formData.buildingId}>
+              <Button type="submit" disabled={!formData.buildingId || !formData.number || !formData.floor}>
+                <Plus className="w-4 h-4 mr-2" />
                 Cadastrar Unidade
               </Button>
             </form>
@@ -170,8 +233,11 @@ const UnitManagement = () => {
             </DialogHeader>
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="edit-building">Edifício</Label>
-                <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value })}>
+                <Label htmlFor="edit-buildingId">Edifício</Label>
+                <Select
+                  value={formData.buildingId}
+                  onValueChange={(value) => setFormData({...formData, buildingId: value})}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um edifício" />
                   </SelectTrigger>
@@ -184,27 +250,48 @@ const UnitManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-number">Número da Unidade</Label>
-                <Input
-                  id="edit-number"
-                  value={formData.number}
-                  onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                  placeholder="Ex: 101, 205, Sala A"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-number">Número</Label>
+                  <Input
+                    id="edit-number"
+                    value={formData.number}
+                    onChange={(e) => setFormData({...formData, number: e.target.value})}
+                    placeholder="Ex: 101"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-floor">Andar</Label>
+                  <Input
+                    id="edit-floor"
+                    value={formData.floor}
+                    onChange={(e) => setFormData({...formData, floor: e.target.value})}
+                    placeholder="Ex: 1º"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-ownerName">Nome do Proprietário</Label>
+                  <Input
+                    id="edit-ownerName"
+                    value={formData.ownerName}
+                    onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-ownerEmail">Email do Proprietário</Label>
+                  <Input
+                    id="edit-ownerEmail"
+                    type="email"
+                    value={formData.ownerEmail}
+                    onChange={(e) => setFormData({...formData, ownerEmail: e.target.value})}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-floor">Andar</Label>
-                <Input
-                  id="edit-floor"
-                  value={formData.floor}
-                  onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
-                  placeholder="Ex: 1, 2, Térreo"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={!formData.buildingId}>
+              <Button type="submit" disabled={!formData.buildingId || !formData.number || !formData.floor}>
                 Salvar Alterações
               </Button>
             </form>
@@ -213,43 +300,54 @@ const UnitManagement = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {units.map((unit) => (
-          <Card key={unit.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center">
-                    <Home className="w-5 h-5 text-white" />
-                  </div>
+        {units.map((unit) => {
+          const building = buildings.find(b => b.id === unit.buildingId);
+          return (
+            <Card key={unit.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg">Unidade {unit.number}</CardTitle>
-                    <CardDescription>Andar {unit.floor}</CardDescription>
+                    <CardTitle className="text-lg">
+                      Unidade {unit.number} - {unit.floor}
+                    </CardTitle>
+                    <CardDescription>
+                      {building?.name || 'Edifício não encontrado'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(unit)}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(unit)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEdit(unit)}
-                  className="h-8 w-8 p-0"
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Building2 className="w-4 h-4" />
-                <span className="text-sm">{unit.buildingName}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardHeader>
+              <CardContent>
+                {unit.ownerName && (
+                  <p className="text-sm text-gray-600">
+                    Proprietário: {unit.ownerName}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {units.length === 0 && (
         <Card className="text-center py-12">
           <CardContent>
-            <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma unidade cadastrada</h3>
             <p className="text-gray-600 mb-4">
               {buildings.length === 0 
