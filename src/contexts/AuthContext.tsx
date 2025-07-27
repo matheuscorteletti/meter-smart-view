@@ -62,11 +62,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Verificar sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('🔍 Sessão inicial encontrada:', session);
       setSession(session);
-      if (!session) {
-        setIsLoading(false);
+      
+      if (session?.user) {
+        // Buscar perfil do usuário na sessão inicial também
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        console.log('👤 Perfil carregado na sessão inicial:', profile);
+        
+        if (profile) {
+          setUser({
+            id: profile.id,
+            name: profile.name,
+            email: session.user.email!,
+            role: profile.role as 'admin' | 'user' | 'viewer',
+            buildingId: profile.building_id,
+            unitId: profile.unit_id,
+          });
+        }
       }
+      
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
