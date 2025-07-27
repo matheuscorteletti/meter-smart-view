@@ -10,37 +10,25 @@ const { sendEmail } = require('../services/emailService');
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-console.log('Carregando rotas de autenticação...');
-
-// Validações com email mais flexível para aceitar domínios locais
+// Validações
 const loginSchema = Joi.object({
-  email: Joi.string().email({ tlds: false }).required(), // Permite domínios locais
+  email: Joi.string().email().required(),
   password: Joi.string().min(6).required()
 });
 
 const forgotPasswordSchema = Joi.object({
-  email: Joi.string().email({ tlds: false }).required() // Permite domínios locais
+  email: Joi.string().email().required()
 });
 
 // Login
 router.post('/login', async (req, res) => {
-  console.log('Rota de login acessada (POST):', req.body);
-  console.log('Headers da requisição:', req.headers);
-  console.log('Origin:', req.headers.origin);
-  console.log('Referer:', req.headers.referer);
-  console.log('CF-Visitor:', req.headers['cf-visitor']);
-  console.log('X-Forwarded-Proto:', req.headers['x-forwarded-proto']);
-  
   try {
     const { error } = loginSchema.validate(req.body);
     if (error) {
-      console.log('Erro de validação:', error.details[0].message);
       return res.status(400).json({ error: error.details[0].message });
     }
 
     const { email, password } = req.body;
-    console.log('Email validado com sucesso:', email);
-    console.log('Senha recebida (primeiros 3 chars):', password.substring(0, 3) + '***');
 
     // Buscar usuário
     const [users] = await pool.execute(
@@ -49,20 +37,14 @@ router.post('/login', async (req, res) => {
     );
 
     if (users.length === 0) {
-      console.log('Usuário não encontrado para email:', email);
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
     const user = users[0];
-    console.log('Usuário encontrado:', { id: user.id, email: user.email });
 
-    // Verificar senha enviada
-    console.log('Iniciando comparação bcrypt...');
-    const validPassword = await bcrypt.compare(password, user.password_hash);
-    console.log('Resultado da comparação bcrypt:', validPassword);
-
+    // Verificar senha
+    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      console.log('Senha inválida para usuário:', email);
       return res.status(401).json({ error: 'Email ou senha incorretos' });
     }
 
@@ -73,44 +55,17 @@ router.post('/login', async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Detectar HTTPS com Cloudflare
-    const isHttps = req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor']).scheme === 'https' ||
-                   req.headers['x-forwarded-proto'] === 'https' || 
-                   req.headers.referer?.startsWith('https://') ||
-                   req.secure;
-
-    console.log('Detecção HTTPS com Cloudflare:', {
-      'cf-visitor': req.headers['cf-visitor'],
-      'x-forwarded-proto': req.headers['x-forwarded-proto'],
-      'referer': req.headers.referer,
-      'secure': req.secure,
-      'isHttps': isHttps
-    });
-
-    // Configurar cookie para funcionar com Cloudflare
-    const cookieOptions = {
-      httpOnly: true,
-      secure: isHttps, // Secure se HTTPS
-      sameSite: isHttps ? 'none' : 'lax', // None necessário para cross-origin HTTPS
-      maxAge: 24 * 60 * 60 * 1000, // 24 horas
-      domain: isHttps ? '.matheus.app.br' : undefined // Domain para subdomínios
-    };
-
-    res.cookie('auth_token', token, cookieOptions);
-
-    console.log('Login realizado com sucesso para:', email);
-    console.log('Cookie configurado:', cookieOptions);
-    console.log('Token JWT gerado:', token.substring(0, 20) + '...');
-
-    // Resposta (sem senha e sem token no body)
+    // Resposta (sem senha)
+    const { password: _, ...userWithoutPassword } = user;
     res.json({
+      token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        buildingId: user.building_id,
-        unitId: user.unit_id
+        id: userWithoutPassword.id,
+        name: userWithoutPassword.name,
+        email: userWithoutPassword.email,
+        role: userWithoutPassword.role,
+        buildingId: userWithoutPassword.building_id,
+        unitId: userWithoutPassword.unit_id
       }
     });
 
@@ -118,26 +73,6 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
-});
-
-// Logout
-router.post('/logout', (req, res) => {
-  console.log('Logout acessado');
-  
-  // Detectar HTTPS com Cloudflare
-  const isHttps = req.headers['cf-visitor'] && JSON.parse(req.headers['cf-visitor']).scheme === 'https' ||
-                 req.headers['x-forwarded-proto'] === 'https' || 
-                 req.headers.referer?.startsWith('https://') ||
-                 req.secure;
-  
-  res.clearCookie('auth_token', {
-    httpOnly: true,
-    secure: isHttps,
-    sameSite: isHttps ? 'none' : 'lax',
-    domain: isHttps ? '.matheus.app.br' : undefined
-  });
-  
-  res.json({ message: 'Logout realizado com sucesso' });
 });
 
 // Esqueci minha senha
@@ -196,7 +131,5 @@ router.post('/forgot-password', async (req, res) => {
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
-
-console.log('Rotas de autenticação carregadas - /login, /logout e /forgot-password');
 
 module.exports = router;

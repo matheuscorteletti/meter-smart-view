@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Building, Unit, Meter, Reading } from '@/types';
+import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import { TrendingUp, Calendar as CalendarIcon, Download, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,7 +14,6 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import ReportsDialog from './ReportsDialog';
-import { useApiData } from '@/hooks/useApi';
 
 interface ConsumptionData {
   date: string;
@@ -25,6 +24,8 @@ interface ConsumptionData {
 }
 
 const ConsumptionDashboard = () => {
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('all');
   const [selectedUnit, setSelectedUnit] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
@@ -39,31 +40,36 @@ const ConsumptionDashboard = () => {
     alerts: 0,
   });
 
-  const { data: buildings = [] } = useApiData<Building>('/buildings');
-  const { data: units = [] } = useApiData<Unit>('/units');
-  const { data: meters = [] } = useApiData<Meter>('/meters');
-  const { data: readings = [] } = useApiData<Reading>('/readings');
-
-  const [filteredUnits, setFilteredUnits] = useState<Unit[]>([]);
+  useEffect(() => {
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
+    setBuildings(buildingsData);
+    setUnits(unitsData);
+  }, []);
 
   useEffect(() => {
     // Filtrar unidades quando um edifício é selecionado
     if (selectedBuilding === 'all') {
-      setFilteredUnits(units);
+      setUnits(getUnits());
       setSelectedUnit('all');
     } else {
-      const filtered = units.filter(unit => unit.buildingId === selectedBuilding);
-      setFilteredUnits(filtered);
+      const filteredUnits = getUnits().filter(unit => unit.buildingId === selectedBuilding);
+      setUnits(filteredUnits);
       setSelectedUnit('all');
     }
-  }, [selectedBuilding, units]);
+  }, [selectedBuilding]);
 
   useEffect(() => {
     loadConsumptionData();
-  }, [selectedBuilding, selectedUnit, selectedPeriod, startDate, endDate, buildings, units, meters, readings]);
+  }, [selectedBuilding, selectedUnit, selectedPeriod, startDate, endDate]);
 
   const loadConsumptionData = () => {
-    let filteredReadings = readings;
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
+    const metersData = getMeters();
+    const readingsData = getReadings();
+
+    let filteredReadings = readingsData;
 
     // Filtrar por período
     const now = new Date();
@@ -82,7 +88,7 @@ const ConsumptionDashboard = () => {
 
     // Filtrar por edifício e unidade
     if (selectedBuilding !== 'all' || selectedUnit !== 'all') {
-      let buildingUnits = units;
+      let buildingUnits = unitsData;
       
       if (selectedBuilding !== 'all') {
         buildingUnits = buildingUnits.filter(u => u.buildingId === selectedBuilding);
@@ -92,7 +98,7 @@ const ConsumptionDashboard = () => {
         buildingUnits = buildingUnits.filter(u => u.id === selectedUnit);
       }
       
-      const buildingMeters = meters.filter(m => buildingUnits.some(u => u.id === m.unitId));
+      const buildingMeters = metersData.filter(m => buildingUnits.some(u => u.id === m.unitId));
       filteredReadings = filteredReadings.filter(r => buildingMeters.some(m => m.id === r.meterId));
     }
 
@@ -100,9 +106,9 @@ const ConsumptionDashboard = () => {
     const dailyConsumption = new Map<string, { agua: number; energia: number; count: number }>();
     
     filteredReadings.forEach(reading => {
-      const meter = meters.find(m => m.id === reading.meterId);
-      const unit = units.find(u => u.id === meter?.unitId);
-      const building = buildings.find(b => b.id === unit?.buildingId);
+      const meter = metersData.find(m => m.id === reading.meterId);
+      const unit = unitsData.find(u => u.id === meter?.unitId);
+      const building = buildingsData.find(b => b.id === unit?.buildingId);
       
       if (!meter || !unit || !building) return;
 
@@ -248,7 +254,7 @@ const ConsumptionDashboard = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as Unidades</SelectItem>
-                {filteredUnits.map(unit => (
+                {units.map(unit => (
                   <SelectItem key={unit.id} value={unit.id}>
                     Unidade {unit.number}
                   </SelectItem>
@@ -308,7 +314,7 @@ const ConsumptionDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de Resumo */}
+      {/* Cards de Resumo - Fixed formatting */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -359,7 +365,7 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{meters.filter(m => m.isActive !== false).length}</div>
+            <div className="text-2xl font-bold">{getMeters().filter(m => m.isActive !== false).length}</div>
             <p className="text-xs text-muted-foreground">Total no sistema</p>
           </CardContent>
         </Card>

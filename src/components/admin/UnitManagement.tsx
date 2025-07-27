@@ -1,119 +1,104 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Building, Unit } from '@/types';
-import { useApiData, useApi } from '@/hooks/useApi';
-import { Home, Plus, Building2, Edit, Trash2 } from 'lucide-react';
+import { getBuildings, getUnits, saveUnits } from '@/lib/storage';
+import { Home, Plus, Building2, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-interface UnitWithBuilding extends Unit {
-  buildingName?: string;
-}
-
 const UnitManagement = () => {
-  const { data: buildings } = useApiData<Building>('/buildings');
-  const { data: units, loading, refetch } = useApiData<UnitWithBuilding>('/units');
-  const { apiCall } = useApi();
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
-  const [formData, setFormData] = useState({ building_id: '', number: '', floor: '' });
+  const [formData, setFormData] = useState({ buildingId: '', number: '', floor: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
+    
+    setBuildings(buildingsData);
+    
+    // Adicionar nome do edifício às unidades
+    const unitsWithBuildingName = unitsData.map(unit => ({
+      ...unit,
+      buildingName: buildingsData.find(b => b.id === unit.buildingId)?.name || 'N/A'
+    }));
+    
+    setUnits(unitsWithBuildingName);
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      await apiCall('/units', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-      });
+    const newUnit: Unit = {
+      id: `unit-${Date.now()}`,
+      buildingId: formData.buildingId,
+      number: formData.number,
+      floor: formData.floor,
+    };
 
-      setFormData({ building_id: '', number: '', floor: '' });
-      setIsDialogOpen(false);
-      refetch();
-      
-      toast({
-        title: "Unidade cadastrada",
-        description: "Unidade adicionada com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao cadastrar unidade",
-        variant: "destructive",
-      });
-    }
+    const updatedUnits = [...units.filter(u => !u.buildingName), newUnit];
+    const unitsWithBuildingName = updatedUnits.map(unit => ({
+      ...unit,
+      buildingName: buildings.find(b => b.id === unit.buildingId)?.name || 'N/A'
+    }));
+    
+    setUnits(unitsWithBuildingName);
+    saveUnits(updatedUnits);
+    
+    setFormData({ buildingId: '', number: '', floor: '' });
+    setIsDialogOpen(false);
+    
+    toast({
+      title: "Unidade cadastrada",
+      description: "Unidade adicionada com sucesso!",
+    });
   };
 
   const handleEdit = (unit: Unit) => {
     setEditingUnit(unit);
     setFormData({ 
-      building_id: unit.buildingId, 
+      buildingId: unit.buildingId, 
       number: unit.number, 
       floor: unit.floor 
     });
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingUnit) return;
 
-    try {
-      await apiCall(`/units/${editingUnit.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
+    const updatedUnitsRaw = units.filter(u => !u.buildingName).map(unit =>
+      unit.id === editingUnit.id
+        ? { ...unit, buildingId: formData.buildingId, number: formData.number, floor: formData.floor }
+        : unit
+    );
 
-      setFormData({ building_id: '', number: '', floor: '' });
-      setEditingUnit(null);
-      setIsEditDialogOpen(false);
-      refetch();
-      
-      toast({
-        title: "Unidade atualizada",
-        description: "Unidade editada com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao atualizar unidade",
-        variant: "destructive",
-      });
-    }
+    const unitsWithBuildingName = updatedUnitsRaw.map(unit => ({
+      ...unit,
+      buildingName: buildings.find(b => b.id === unit.buildingId)?.name || 'N/A'
+    }));
+
+    setUnits(unitsWithBuildingName);
+    saveUnits(updatedUnitsRaw);
+    
+    setFormData({ buildingId: '', number: '', floor: '' });
+    setEditingUnit(null);
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Unidade atualizada",
+      description: "Unidade editada com sucesso!",
+    });
   };
-
-  const handleDelete = async (unitId: string) => {
-    try {
-      await apiCall(`/units/${unitId}`, {
-        method: 'DELETE',
-      });
-
-      refetch();
-      
-      toast({
-        title: "Unidade removida",
-        description: "Unidade removida com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao remover unidade",
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (loading) {
-    return <div className="flex justify-center p-8">Carregando...</div>;
-  }
 
   return (
     <div className="space-y-6">
@@ -137,7 +122,7 @@ const UnitManagement = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="building">Edifício</Label>
-                <Select value={formData.building_id} onValueChange={(value) => setFormData({ ...formData, building_id: value })}>
+                <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um edifício" />
                   </SelectTrigger>
@@ -170,7 +155,7 @@ const UnitManagement = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={!formData.building_id}>
+              <Button type="submit" className="w-full" disabled={!formData.buildingId}>
                 Cadastrar Unidade
               </Button>
             </form>
@@ -186,7 +171,7 @@ const UnitManagement = () => {
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-building">Edifício</Label>
-                <Select value={formData.building_id} onValueChange={(value) => setFormData({ ...formData, building_id: value })}>
+                <Select value={formData.buildingId} onValueChange={(value) => setFormData({ ...formData, buildingId: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um edifício" />
                   </SelectTrigger>
@@ -219,7 +204,7 @@ const UnitManagement = () => {
                   required
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={!formData.building_id}>
+              <Button type="submit" className="w-full" disabled={!formData.buildingId}>
                 Salvar Alterações
               </Button>
             </form>
@@ -241,47 +226,20 @@ const UnitManagement = () => {
                     <CardDescription>Andar {unit.floor}</CardDescription>
                   </div>
                 </div>
-                <div className="flex space-x-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(unit)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tem certeza que deseja remover a unidade {unit.number}? Esta ação não pode ser desfeita.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(unit.id)}>
-                          Remover
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(unit)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2 text-gray-600">
                 <Building2 className="w-4 h-4" />
-                <span className="text-sm">{unit.buildingName || 'N/A'}</span>
+                <span className="text-sm">{unit.buildingName}</span>
               </div>
             </CardContent>
           </Card>

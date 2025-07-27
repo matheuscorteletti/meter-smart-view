@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit3 } from 'lucide-react';
 import { Meter, Reading } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
+import { addReading, getReadings } from '@/lib/storage';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
 
 interface EditReadingDialogProps {
   meter: Meter & { unitNumber: string };
@@ -23,28 +22,15 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (isOpen) {
-      fetchLatestReading();
-    }
-  }, [isOpen, meter.id]);
-
-  const fetchLatestReading = async () => {
-    try {
-      const { data: readings } = await supabase
-        .from('readings')
-        .select('reading')
-        .eq('meter_id', meter.id)
-        .order('reading_date', { ascending: false })
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      const latestReading = readings && readings.length > 0 ? readings[0].reading : meter.initialReading;
-      setCurrentReading(Number(latestReading));
-    } catch (error) {
-      console.error('Erro ao buscar leituras:', error);
-      setCurrentReading(Number(meter.initialReading));
-    }
-  };
+    // Get the latest reading from storage
+    const allReadings = getReadings();
+    const meterReadings = allReadings
+      .filter(r => r.meterId === meter.id)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const lastReading = meterReadings[0]?.reading || meter.initialReading;
+    setCurrentReading(lastReading);
+  }, [meter.id, meter.initialReading]);
 
   const validateReading = (value: string) => {
     setError('');
@@ -78,7 +64,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     validateReading(value);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const readingValue = Number(reading);
@@ -94,43 +80,25 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
       return;
     }
 
-    try {
-      const consumption = Math.max(0, readingValue - currentReading);
-      const isAlert = consumption > Number(meter.threshold);
+    const consumption = Math.max(0, readingValue - currentReading);
+    const isAlert = consumption > meter.threshold;
 
-      const newReading = {
-        meter_id: meter.id,
-        reading: readingValue,
-        consumption,
-        reading_date: new Date().toISOString().split('T')[0],
-        is_alert: isAlert,
-        reader_id: user?.id,
-      };
+    const newReading: Omit<Reading, 'id'> = {
+      meterId: meter.id,
+      reading: readingValue,
+      consumption,
+      date: new Date().toISOString(),
+      isAlert,
+      meterType: meter.type,
+      unitNumber: meter.unitNumber,
+      launchedBy: user?.name || 'Usuário',
+    };
 
-      const { error } = await supabase
-        .from('readings')
-        .insert([newReading]);
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      onReadingAdded();
-      setReading('');
-      setError('');
-      setIsOpen(false);
-      
-      toast({
-        title: "Leitura registrada",
-        description: `Leitura de ${readingValue.toLocaleString('pt-BR')} registrada com sucesso!`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: error instanceof Error ? error.message : "Erro ao registrar leitura",
-        variant: "destructive",
-      });
-    }
+    addReading(newReading);
+    onReadingAdded();
+    setReading('');
+    setError('');
+    setIsOpen(false);
   };
 
   const isFormValid = reading && !error && Number(reading) > currentReading;

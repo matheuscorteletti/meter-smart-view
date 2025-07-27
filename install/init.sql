@@ -3,10 +3,9 @@
 -- SISTEMA DE MEDIDORES - SCRIPT DE INSTALAÇÃO
 -- ============================================
 -- Execute este script no seu servidor MySQL
+-- Host: 192.168.100.240
 -- ============================================
 
--- Criar banco de dados se não existir
-CREATE DATABASE IF NOT EXISTS meter CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE meter;
 
 -- ============================================
@@ -107,38 +106,22 @@ CREATE INDEX idx_readings_date ON readings(reading_date);
 CREATE INDEX idx_readings_alert ON readings(is_alert);
 
 -- ============================================
--- USUÁRIO ADMINISTRADOR PADRÃO
+-- DADOS INICIAIS
 -- ============================================
--- IMPORTANTE: Altere a senha após a primeira instalação
 
--- Senha padrão: admin123 (hash bcrypt)
+-- Usuário administrador padrão
 INSERT IGNORE INTO users (id, name, email, password_hash, role) VALUES 
-('admin-001', 'Administrador Sistema', 'admin@medidores.local', '$2a$10$rXKXaELQz5e4zKZ3YxKq7OzBGzYLl9xZ7BhU/8.Y7X9QWERTYUIOP', 'admin');
-
--- ============================================
--- DADOS DE EXEMPLO (OPCIONAL)
--- ============================================
+('admin-001', 'Administrador Sistema', 'admin@medidores.local', '$2b$10$exemplo_hash_trocar_por_hash_real', 'admin');
 
 -- Edifício de exemplo
 INSERT IGNORE INTO buildings (id, name, address, contact_phone, contact_email) VALUES 
 ('building-001', 'Edifício Exemplo', 'Rua das Flores, 123 - Centro', '(11) 99999-9999', 'contato@edificio.com');
 
--- Unidades de exemplo
+-- Unidade de exemplo
 INSERT IGNORE INTO units (id, building_id, number, floor, owner_name, owner_email) VALUES 
-('unit-001', 'building-001', '101', '1º Andar', 'João Silva', 'joao@email.com'),
-('unit-002', 'building-001', '201', '2º Andar', 'Maria Santos', 'maria@email.com');
+('unit-001', 'building-001', '101', '1º Andar', 'João Silva', 'joao@email.com');
 
--- ============================================
--- FINAL DA INSTALAÇÃO
--- ============================================
-
--- Verificar instalação
-SELECT 
-    (SELECT COUNT(*) FROM users WHERE role = 'admin') as administradores,
-    (SELECT COUNT(*) FROM buildings) as edificios,
-    (SELECT COUNT(*) FROM units) as unidades,
-    (SELECT COUNT(*) FROM meters) as medidores,
-    (SELECT COUNT(*) FROM readings) as leituras;
-
--- Mostrar usuário admin criado
-SELECT id, name, email, role, created_at FROM users WHERE role = 'admin';
+-- Medidores de exemplo
+INSERT IGNORE INTO meters (id, unit_id, type, serial_number, brand, model, initial_reading, threshold) VALUES 
+('meter-001', 'unit-001', 'water', 'H2O-001-2024', 'AquaMeter', 'AM-500', 12345.50000, 50.00),
+('meter-002', 'unit-001', 'energy', 'ELE-001-2024', 'EnergyTech', 'ET-300', 54321.00000, 100.00);

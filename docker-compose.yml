@@ -1,40 +1,47 @@
 
-# Docker Compose para ambiente de produção
+# Docker Compose para ambiente de desenvolvimento
+# Conectando com banco de dados externo
+
+version: '3.8'
+
 services:
   # Frontend React
   frontend:
-    build:
+    build: 
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: Dockerfile.dev
     container_name: meter-frontend
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
-      - NODE_ENV=production
-      - VITE_API_BASE_URL=http://192.168.100.234:3001/api
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
     depends_on:
       - backend
     networks:
       - meter-network
 
-  # Backend Node.js
+  # Backend (preparado para quando criar)
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: node:18-alpine
     container_name: meter-backend
     ports:
       - "3001:3001"
+    volumes:
+      - ./backend:/app
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=${NODE_ENV}
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
-      - PORT=3001
-      - FRONTEND_URL=http://192.168.100.234:3000
+      - PORT=${PORT}
     env_file:
       - .env
     networks:

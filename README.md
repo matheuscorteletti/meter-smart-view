@@ -16,195 +16,155 @@ Sistema completo para gerenciamento de medidores de água e energia em edifício
 
 - **Frontend**: React 18 + Vite + TypeScript
 - **UI Components**: Shadcn/UI + Tailwind CSS
-- **Backend**: Node.js + Express
+- **Backend**: Node.js + Express (preparado)
 - **Banco de Dados**: MySQL 8.0+
-- **Deploy**: Docker Compose
+- **Deploy**: Docker + Docker Compose
 
-## 📦 Instalação
+## 📦 Instalação Rápida
 
 ### Pré-requisitos
-- **Docker + Docker Compose**
-- **MySQL 8.0+** (servidor configurado)
-- **Git**
+- Docker e Docker Compose
+- MySQL Server em 192.168.100.240
+- Git
 
-### 1. Preparar Banco de Dados
-
-Configure o MySQL no seu servidor:
-
-```sql
--- Conectar como root no MySQL
-mysql -u root -p
-
--- Criar usuário para o sistema
-CREATE USER 'meter'@'%' IDENTIFIED BY 'SuaSenhaSegura123';
-
--- Dar permissões completas
-GRANT ALL PRIVILEGES ON *.* TO 'meter'@'%';
-
--- Aplicar mudanças
-FLUSH PRIVILEGES;
-
--- Verificar criação
-SELECT User, Host FROM mysql.user WHERE User = 'meter';
+### 1. Configurar Banco de Dados
+```bash
+# Execute o script de instalação no MySQL
+mysql -u root -p < /home/wise/init.sql
 ```
 
-### 2. Executar Script de Instalação
-
-```sql
--- Conectar com o usuário criado
-mysql -h SEU_IP_MYSQL -u meter -p
-
--- Executar o script de instalação
-source install/init.sql;
-
--- OU via linha de comando:
-mysql -h SEU_IP_MYSQL -u meter -p < install/init.sql
-```
-
-### 3. Configurar Ambiente
-
+### 2. Iniciar Sistema
 ```bash
 # Clonar repositório
 git clone [SEU_REPOSITORIO]
 cd sistema-medidores
 
-# Configurar variáveis de ambiente
-cp .env.example .env
-nano .env
+# Tornar script executável
+chmod +x docker-dev.sh
+
+# Iniciar aplicação
+./docker-dev.sh up
 ```
 
-Configure o arquivo `.env` com suas informações:
+### 3. Acessar Sistema
+- **Frontend**: http://localhost:3000
+- **Backend**: http://localhost:3001
 
-```env
-# Configurações do Banco de Dados
-DB_HOST=192.168.100.240
-DB_PORT=3306
-DB_NAME=meter
-DB_USER=meter
-DB_PASSWORD=SuaSenhaSegura123
+## 🔐 Credenciais de Acesso
 
-# JWT Configuration
-JWT_SECRET=sua_chave_jwt_super_secreta_64_caracteres_aqui
+### Contas de Demonstração
+- **Admin**: admin@demo.com / admin123
+- **Usuário**: user@demo.com / user123  
+- **Visualizador**: viewer@demo.com / viewer123
 
-# Configurações do Servidor
-NODE_ENV=production
-PORT=3001
+**Nota**: Senhas devem ter pelo menos 6 caracteres
 
-# Configurações do Frontend
-VITE_API_BASE_URL=http://localhost:3001/api
+### Comandos Administrativos
 
-# URL do Frontend
-FRONTEND_URL=http://localhost:3000
-```
-
-### 4. Iniciar com Docker
-
-```bash
-# Iniciar sistema completo
-docker-compose up -d
-
-# Ver logs em tempo real
-docker-compose logs -f
-
-# Verificar status
-docker-compose ps
-```
-
-## 🔐 Primeiro Acesso
-
-Após a instalação:
-- **URL**: http://localhost:3000
-- **Login**: admin@medidores.local
-- **Senha**: admin123
-
-⚠️ **IMPORTANTE**: Altere a senha do administrador após o primeiro login!
-
-## 🛠️ Comandos Docker
-
-```bash
-# Iniciar sistema
-docker-compose up -d
-
-# Parar sistema
-docker-compose down
-
-# Reiniciar sistema
-docker-compose restart
-
-# Ver logs
-docker-compose logs -f
-
-# Limpar containers e volumes
-docker-compose down -v
-```
-
-## 🗄️ Estrutura do Banco
-
-O script `install/init.sql` cria:
-
-- ✅ **Tabelas**: users, buildings, units, meters, readings
-- ✅ **Índices**: Para otimização de performance
-- ✅ **Usuário Admin**: admin@medidores.local (senha: admin123)
-- ✅ **Dados de Exemplo**: Edifício e unidades de demonstração
-- ✅ **Medidores Vazios**: Prontos para configuração
-
-## 🔄 Reinstalação
-
-Para reinstalar completamente:
-
-```bash
-# 1. Parar containers
-docker-compose down -v
-
-# 2. Limpar banco de dados
-mysql -h SEU_IP_MYSQL -u meter -p -e "DROP DATABASE IF EXISTS meter;"
-
-# 3. Executar script novamente
-mysql -h SEU_IP_MYSQL -u meter -p < install/init.sql
-
-# 4. Reiniciar containers
-docker-compose up -d
-```
-
-## 🛡️ Segurança
-
-### Alterar Senha do Admin
+#### Criar Novo Usuário Administrador
 ```sql
--- Gerar hash da nova senha em: https://bcrypt-generator.com/
-UPDATE users 
-SET password_hash = '$2a$10$SEU_NOVO_HASH_AQUI' 
-WHERE email = 'admin@medidores.local';
-```
+-- Conectar ao MySQL
+mysql -u root -p
 
-### Criar Novos Administradores
-```sql
-INSERT INTO users (id, name, email, password_hash, role) VALUES 
-(UUID(), 'Novo Admin', 'novo@admin.com', '$2a$10$HASH_DA_SENHA', 'admin');
-```
-
-## 📋 Comandos Úteis
-
-### Verificar Instalação
-```sql
+-- Usar banco de dados
 USE meter;
-SELECT 
-    (SELECT COUNT(*) FROM users WHERE role = 'admin') as administradores,
-    (SELECT COUNT(*) FROM buildings) as edificios,
-    (SELECT COUNT(*) FROM units) as unidades,
-    (SELECT COUNT(*) FROM meters) as medidores;
+
+-- Criar novo administrador (substitua os dados)
+INSERT INTO users (id, name, email, password_hash, role) VALUES 
+(UUID(), 'Seu Nome', 'seu@email.com', '$2b$10$hash_da_senha_aqui', 'admin');
 ```
 
-### Backup do Banco
+#### Resetar Senha do Admin (Emergência)
+```sql
+-- Para resetar senha do admin principal
+-- Primeiro gere o hash da nova senha em: https://bcrypt-generator.com/
+-- Use 10 rounds de criptografia
+
+UPDATE users 
+SET password_hash = '$2b$10$NOVO_HASH_AQUI' 
+WHERE email = 'admin@demo.com';
+
+-- Exemplo com senha "novasenha123":
+UPDATE users 
+SET password_hash = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi' 
+WHERE email = 'admin@demo.com';
+```
+
+#### Listar Todos os Administradores
+```sql
+SELECT id, name, email, role, created_at 
+FROM users 
+WHERE role = 'admin';
+```
+
+## 📚 Documentação Completa
+
+Consulte o [Guia de Instalação Completo](install/README.md) para:
+- Configuração detalhada do Ubuntu
+- Troubleshooting avançado
+- Configurações de segurança
+- Backup e manutenção
+
+## 🐳 Comandos Docker
+
 ```bash
-mysqldump -h SEU_IP_MYSQL -u meter -p meter > backup_meter.sql
+./docker-dev.sh up       # Iniciar sistema
+./docker-dev.sh down     # Parar sistema
+./docker-dev.sh logs     # Ver logs
+./docker-dev.sh status   # Status dos containers
+./docker-dev.sh clean    # Limpar ambiente
 ```
 
-### Restaurar Backup
-```bash
-mysql -h SEU_IP_MYSQL -u meter -p meter < backup_meter.sql
+## 🛠️ Desenvolvimento
+
+Este projeto utiliza:
+- **React Query** para gerenciamento de estado
+- **React Hook Form** para formulários
+- **Recharts** para gráficos
+- **Lucide React** para ícones
+- **Date-fns** para manipulação de datas
+
+## 📁 Estrutura do Projeto
+
+```
+src/
+├── components/          # Componentes React
+│   ├── admin/          # Área administrativa
+│   ├── user/           # Área do usuário
+│   └── ui/             # Componentes UI base
+├── contexts/           # Context providers
+├── hooks/              # Custom hooks
+├── lib/                # Utilitários
+├── pages/              # Páginas principais
+├── types/              # Definições TypeScript
+install/                # Scripts de instalação
+├── init.sql           # Script do banco
+└── README.md          # Guia completo
 ```
 
-## ✨ Funcionalidades
+## 🔄 Deploy em Produção
+
+Para ambiente de produção:
+
+1. Configure variáveis de ambiente seguras
+2. Use HTTPS com certificados SSL
+3. Configure backup automático do MySQL
+4. Monitore logs e performance
+5. Implemente rotação de logs
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para detalhes.
+
+## ✨ Funcionalidades Principais
 
 ### Para Administradores
 - Gerenciar edifícios e unidades
@@ -220,37 +180,6 @@ mysql -h SEU_IP_MYSQL -u meter -p meter < backup_meter.sql
 - Gerar relatórios da unidade
 - Acompanhar tendências
 
-## 🐛 Solução de Problemas
-
-### Erro de Conexão MySQL
-```bash
-# Testar conexão
-mysql -h SEU_IP_MYSQL -u meter -p
-
-# Verificar firewall (porta 3306)
-telnet SEU_IP_MYSQL 3306
-```
-
-### Container não inicia
-```bash
-docker-compose logs frontend
-docker-compose logs backend
-```
-
-### Resetar Sistema
-```bash
-docker-compose down -v
-mysql -h SEU_IP_MYSQL -u meter -p -e "DROP DATABASE meter;"
-mysql -h SEU_IP_MYSQL -u meter -p < install/init.sql
-docker-compose up -d
-```
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT.
-
 ---
 
-**🎯 Sistema simplificado com instalação tradicional via SQL!**
-
-**Desenvolvido para facilitar o gerenciamento de medidores em condomínios e edifícios.**
+**Desenvolvido para facilitar o gerenciamento de medidores em condomínios e edifícios comerciais.**
