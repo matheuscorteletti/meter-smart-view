@@ -30,65 +30,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('🚀 AuthProvider iniciado com Supabase');
     
+    // Função para buscar perfil
+    const fetchUserProfile = async (session: Session) => {
+      console.log('🔍 Buscando perfil para usuário:', session.user.id);
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+      
+      console.log('👤 Perfil encontrado:', profile);
+      
+      if (profile) {
+        const userObj = {
+          id: profile.id,
+          name: profile.name,
+          email: session.user.email!,
+          role: profile.role as 'admin' | 'user' | 'viewer',
+          buildingId: profile.building_id,
+          unitId: profile.unit_id,
+        };
+        console.log('✅ Definindo usuário:', userObj);
+        setUser(userObj);
+      }
+      setIsLoading(false);
+    };
+    
     // Configurar listener de mudanças de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state changed:', event, session);
+        console.log('🔄 Auth state changed:', event, session?.user?.id);
         setSession(session);
         
         if (session?.user) {
-          // Buscar perfil do usuário
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (profile) {
-            setUser({
-              id: profile.id,
-              name: profile.name,
-              email: session.user.email!,
-              role: profile.role as 'admin' | 'user' | 'viewer',
-              buildingId: profile.building_id,
-              unitId: profile.unit_id,
-            });
-          }
+          await fetchUserProfile(session);
         } else {
+          console.log('❌ Nenhuma sessão ativa');
           setUser(null);
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
     // Verificar sessão inicial
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('🔍 Sessão inicial encontrada:', session);
+      console.log('🔍 Verificando sessão inicial:', session?.user?.id);
       setSession(session);
       
       if (session?.user) {
-        // Buscar perfil do usuário na sessão inicial também
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        console.log('👤 Perfil carregado na sessão inicial:', profile);
-        
-        if (profile) {
-          setUser({
-            id: profile.id,
-            name: profile.name,
-            email: session.user.email!,
-            role: profile.role as 'admin' | 'user' | 'viewer',
-            buildingId: profile.building_id,
-            unitId: profile.unit_id,
-          });
-        }
+        await fetchUserProfile(session);
+      } else {
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();

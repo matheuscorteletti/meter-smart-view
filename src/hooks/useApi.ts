@@ -1,25 +1,22 @@
-// Compatibility layer for Supabase migration
-import { useSupabaseData } from './useSupabaseData';
+// Compatibility layer - DEPRECATED
+// All components should be migrated to useSupabaseData
 
 export const useApi = () => {
   const apiCall = async (endpoint: string, options: any = {}) => {
-    console.warn('useApi is deprecated, please use Supabase hooks directly');
-    throw new Error('This API call needs to be migrated to Supabase');
+    console.error('useApi is deprecated and non-functional. Use Supabase hooks instead.');
+    return [];
   };
 
   return { apiCall };
 };
 
 export const useApiData = <T>(endpoint: string) => {
-  console.warn('useApiData is deprecated, please use Supabase hooks directly');
-  
-  // Map old endpoints to new Supabase hooks
-  const table = endpoint.replace('/', '').replace('s', '') as 'building' | 'meter' | 'unit' | 'reading' | 'profile';
+  console.error('useApiData is deprecated. Use Supabase hooks instead.');
   
   return {
     data: [] as T[],
     loading: false,
-    error: 'This component needs to be migrated to Supabase',
+    error: 'Component needs migration to Supabase',
     refetch: () => {}
   };
 };
