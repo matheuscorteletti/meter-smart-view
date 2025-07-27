@@ -1,18 +1,38 @@
 
+import React, { useState } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import UserDashboard from "@/components/user/UserDashboard";
 import ConsumptionDashboard from "@/components/user/ConsumptionDashboard";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Building2, Mail, Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Layout from "@/components/Layout";
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await login(email, password);
+      console.log('🎉 Login realizado com sucesso!');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -36,7 +56,7 @@ const Index = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
@@ -45,6 +65,8 @@ const Index = () => {
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -58,6 +80,8 @@ const Index = () => {
                       id="password"
                       type="password"
                       placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       className="pl-10"
                       required
                       minLength={6}
@@ -65,11 +89,19 @@ const Index = () => {
                   </div>
                 </div>
 
-                <Link to="/auth">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 transform hover:scale-105 transition-all">
-                    Entrar no Sistema
-                  </Button>
-                </Link>
+                {error && (
+                  <Alert className="bg-red-50 border-red-200">
+                    <AlertDescription className="text-red-700">{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 transform hover:scale-105 transition-all"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
               </form>
             </CardContent>
           </Card>
