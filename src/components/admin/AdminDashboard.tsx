@@ -2,21 +2,21 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building, Users, Zap, BarChart3, AlertTriangle, Plus } from 'lucide-react';
-import { useApiData } from '@/hooks/useApi';
+import { useBuildings, useMeters, useReadings, useProfiles } from '@/hooks/useSupabaseData';
 import { Building as BuildingType, User, Meter, Reading } from '@/types';
 
 const AdminDashboard = () => {
-  const { data: buildings = [], loading: buildingsLoading } = useApiData<BuildingType>('/buildings');
-  const { data: users = [], loading: usersLoading } = useApiData<User>('/users');
-  const { data: meters = [], loading: metersLoading } = useApiData<Meter>('/meters');
-  const { data: readings = [], loading: readingsLoading } = useApiData<Reading>('/readings');
+  const { data: buildings = [], loading: buildingsLoading } = useBuildings();
+  const { data: users = [], loading: usersLoading } = useProfiles();
+  const { data: meters = [], loading: metersLoading } = useMeters();
+  const { data: readings = [], loading: readingsLoading } = useReadings();
 
   const isLoading = buildingsLoading || usersLoading || metersLoading || readingsLoading;
 
-  // Calcular alertas - assumindo que alertas são leituras com isAlert = true
-  const alerts = readings.filter(reading => reading.isAlert).length;
+  // Calcular alertas - assumindo que alertas são leituras com is_alert = true
+  const alerts = readings.filter(reading => reading.is_alert).length;
 
-  const activeMeters = meters.filter(meter => meter.isActive !== false).length;
+  const activeMeters = meters.filter(meter => meter.active !== false).length;
 
   return (
     <div className="space-y-6">

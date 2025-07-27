@@ -1,21 +1,24 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Building2, Lock, Mail } from 'lucide-react';
-import ForgotPasswordDialog from '@/components/user/ForgotPasswordDialog';
+import { Building2, Lock, Mail, User, ArrowLeft } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
 
-const LoginForm = () => {
+const AuthPage = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const { login } = useAuth();
+  const { signUp } = useSupabaseAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +26,21 @@ const LoginForm = () => {
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        const { error } = await signUp(email, password, { name });
+        if (error) {
+          throw error;
+        }
+        toast({
+          title: "Cadastro realizado",
+          description: "Verifique seu email para confirmar o cadastro!",
+        });
+        setIsLogin(true);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao fazer login');
+      setError(err instanceof Error ? err.message : 'Erro na autenticação');
     } finally {
       setIsLoading(false);
     }
@@ -35,6 +50,10 @@ const LoginForm = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
+          <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Link>
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-green-600 rounded-full flex items-center justify-center">
               <Building2 className="w-8 h-8 text-white" />
@@ -46,13 +65,36 @@ const LoginForm = () => {
 
         <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Entrar</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              {isLogin ? 'Entrar' : 'Cadastrar'}
+            </CardTitle>
             <CardDescription className="text-center">
-              Digite suas credenciais para acessar o sistema
+              {isLogin 
+                ? 'Digite suas credenciais para acessar o sistema'
+                : 'Crie sua conta para acessar o sistema'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome completo</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Seu nome completo"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="pl-10"
+                      required={!isLogin}
+                    />
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
@@ -68,6 +110,7 @@ const LoginForm = () => {
                   />
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
                 <div className="relative">
@@ -96,7 +139,7 @@ const LoginForm = () => {
                 className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 transform hover:scale-105 transition-all"
                 disabled={isLoading}
               >
-                {isLoading ? 'Entrando...' : 'Entrar'}
+                {isLoading ? (isLogin ? 'Entrando...' : 'Cadastrando...') : (isLogin ? 'Entrar' : 'Cadastrar')}
               </Button>
               
               <div className="text-center">
@@ -104,23 +147,24 @@ const LoginForm = () => {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsForgotPasswordOpen(true)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setError('');
+                    setName('');
+                    setEmail('');
+                    setPassword('');
+                  }}
                   className="text-blue-600 hover:text-blue-800"
                 >
-                  Esqueci minha senha
+                  {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
-        
-        <ForgotPasswordDialog 
-          open={isForgotPasswordOpen} 
-          onOpenChange={setIsForgotPasswordOpen} 
-        />
       </div>
     </div>
   );
 };
 
-export default LoginForm;
+export default AuthPage;

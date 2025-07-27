@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Edit3 } from 'lucide-react';
 import { Meter, Reading } from '@/types';
-import { useApi } from '@/hooks/useApi';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
@@ -17,7 +17,6 @@ interface EditReadingDialogProps {
 
 const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingAdded }) => {
   const { user } = useAuth();
-  const { apiCall } = useApi();
   const [isOpen, setIsOpen] = useState(false);
   const [reading, setReading] = useState('');
   const [currentReading, setCurrentReading] = useState(0);
@@ -31,12 +30,19 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
 
   const fetchLatestReading = async () => {
     try {
-      const readings = await apiCall(`/readings/meter/${meter.id}`);
-      const latestReading = readings.length > 0 ? readings[0].reading : meter.initialReading;
-      setCurrentReading(latestReading);
+      const { data: readings } = await supabase
+        .from('readings')
+        .select('reading')
+        .eq('meter_id', meter.id)
+        .order('reading_date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const latestReading = readings && readings.length > 0 ? readings[0].reading : meter.initialReading;
+      setCurrentReading(Number(latestReading));
     } catch (error) {
       console.error('Erro ao buscar leituras:', error);
-      setCurrentReading(meter.initialReading);
+      setCurrentReading(Number(meter.initialReading));
     }
   };
 
@@ -90,7 +96,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
 
     try {
       const consumption = Math.max(0, readingValue - currentReading);
-      const isAlert = consumption > meter.threshold;
+      const isAlert = consumption > Number(meter.threshold);
 
       const newReading = {
         meter_id: meter.id,
@@ -98,12 +104,16 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
         consumption,
         reading_date: new Date().toISOString().split('T')[0],
         is_alert: isAlert,
+        reader_id: user?.id,
       };
 
-      await apiCall('/readings', {
-        method: 'POST',
-        body: JSON.stringify(newReading),
-      });
+      const { error } = await supabase
+        .from('readings')
+        .insert([newReading]);
+
+      if (error) {
+        throw new Error(error.message);
+      }
 
       onReadingAdded();
       setReading('');

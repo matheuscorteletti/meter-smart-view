@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User, Mail, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useApi } from '@/hooks/useApi';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -17,7 +17,7 @@ interface ProfileEditDialogProps {
 
 const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChange }) => {
   const { user } = useAuth();
-  const { apiCall } = useApi();
+  const { updateProfile } = useSupabaseAuth();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -31,10 +31,11 @@ const ProfileEditDialog: React.FC<ProfileEditDialogProps> = ({ open, onOpenChang
     setIsLoading(true);
 
     try {
-      await apiCall('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
+      const { error } = await updateProfile({ name: formData.name });
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
         title: "Perfil atualizado",
