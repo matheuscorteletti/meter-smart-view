@@ -26,7 +26,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     const allReadings = getReadings();
     const meterReadings = allReadings
       .filter(r => r.meterId === meter.id)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => new Date(b.readingDate || '').getTime() - new Date(a.readingDate || '').getTime());
     
     const lastReading = meterReadings[0]?.reading || meter.initialReading;
     setCurrentReading(lastReading);
@@ -83,11 +83,12 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
     const consumption = Math.max(0, readingValue - currentReading);
     const isAlert = consumption > meter.threshold;
 
-    const newReading: Omit<Reading, 'id'> = {
+    const newReading: Reading = {
+      id: `reading-${Date.now()}`,
       meterId: meter.id,
       reading: readingValue,
       consumption,
-      date: new Date().toISOString(),
+      readingDate: new Date().toISOString().split('T')[0],
       isAlert,
       meterType: meter.type,
       unitNumber: meter.unitNumber,
@@ -115,7 +116,7 @@ const EditReadingDialog: React.FC<EditReadingDialogProps> = ({ meter, onReadingA
         <DialogHeader>
           <DialogTitle>Lançar Nova Leitura</DialogTitle>
           <DialogDescription>
-            Medidor de {meter.type === 'water' ? 'Água' : 'Energia'} - Unidade {meter.unitNumber}
+            Medidor de {meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás'} - Unidade {meter.unitNumber}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

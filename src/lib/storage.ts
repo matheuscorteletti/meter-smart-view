@@ -23,12 +23,12 @@ export interface Unit {
 export interface Meter {
   id: string;
   unitId: string;
-  serialNumber: string;
+  serialNumber?: string;
   type: 'agua' | 'energia' | 'gas';
   brand?: string;
   model?: string;
   installationDate?: string;
-  multiplier: number;
+  multiplier?: number;
   threshold: number;
   totalDigits: number;
   calculationDigits: number;
@@ -39,13 +39,16 @@ export interface Meter {
 export interface Reading {
   id: string;
   meterId: string;
-  readingDate: string;
+  readingDate?: string;
   reading: number;
   consumption: number;
   readerId?: string;
   notes?: string;
   isAlert?: boolean;
   alertReason?: string;
+  meterType?: string;
+  unitNumber?: string;
+  launchedBy?: string;
 }
 
 export interface User {

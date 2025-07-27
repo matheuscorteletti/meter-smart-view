@@ -78,12 +78,12 @@ const ConsumptionDashboard = () => {
     if (selectedPeriod === 'custom' && startDate && endDate) {
       dateFrom = startDate;
       filteredReadings = filteredReadings.filter(r => {
-        const readingDate = new Date(r.date);
+        const readingDate = new Date(r.readingDate || '');
         return readingDate >= startDate && readingDate <= endDate;
       });
     } else {
       dateFrom.setDate(now.getDate() - parseInt(selectedPeriod));
-      filteredReadings = filteredReadings.filter(r => new Date(r.date) >= dateFrom);
+      filteredReadings = filteredReadings.filter(r => new Date(r.readingDate || '') >= dateFrom);
     }
 
     // Filtrar por edifício e unidade
@@ -112,14 +112,14 @@ const ConsumptionDashboard = () => {
       
       if (!meter || !unit || !building) return;
 
-      const dateKey = new Date(reading.date).toISOString().split('T')[0];
+      const dateKey = new Date(reading.readingDate || '').toISOString().split('T')[0];
       
       if (!dailyConsumption.has(dateKey)) {
         dailyConsumption.set(dateKey, { agua: 0, energia: 0, count: 0 });
       }
       
       const dayData = dailyConsumption.get(dateKey)!;
-      if (meter.type === 'water') {
+      if (meter.type === 'agua') {
         dayData.agua += reading.consumption;
       } else {
         dayData.energia += reading.consumption;
@@ -365,7 +365,7 @@ const ConsumptionDashboard = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{getMeters().filter(m => m.isActive !== false).length}</div>
+            <div className="text-2xl font-bold">{getMeters().filter(m => m.active !== false).length}</div>
             <p className="text-xs text-muted-foreground">Total no sistema</p>
           </CardContent>
         </Card>

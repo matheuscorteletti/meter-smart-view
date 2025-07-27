@@ -56,7 +56,7 @@ const AdminDashboard = () => {
     
     // Atividades baseadas em leituras reais
     const recentReadings = readings
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => new Date(b.readingDate || '').getTime() - new Date(a.readingDate || '').getTime())
       .slice(0, 3);
 
     recentReadings.forEach((reading, index) => {
@@ -66,7 +66,7 @@ const AdminDashboard = () => {
       
       if (building && unit) {
         const now = new Date();
-        const readingDate = new Date(reading.date);
+        const readingDate = new Date(reading.readingDate || '');
         const diffInHours = Math.floor((now.getTime() - readingDate.getTime()) / (1000 * 60 * 60));
         const timeAgo = diffInHours < 24 ? `${diffInHours}h atrás` : `${Math.floor(diffInHours / 24)}d atrás`;
         

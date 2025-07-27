@@ -39,13 +39,13 @@ const UserDashboard = () => {
     const buildingUnitIds = buildingUnits.map(unit => unit.id);
 
     const metersWithDetails: MeterWithDetails[] = metersData
-      .filter(meter => meter.isActive !== false && buildingUnitIds.includes(meter.unitId))
+      .filter(meter => meter.active !== false && buildingUnitIds.includes(meter.unitId))
       .map(meter => {
         const unit = unitsData.find(u => u.id === meter.unitId);
         const building = buildingsData.find(b => b.id === unit?.buildingId);
         const latestReading = readingsData
           .filter(r => r.meterId === meter.id)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+          .sort((a, b) => new Date(b.readingDate || '').getTime() - new Date(a.readingDate || '').getTime())[0];
         
         return {
           ...meter,
@@ -71,11 +71,11 @@ const UserDashboard = () => {
   };
 
   const getMeterIcon = (type: string) => {
-    return type === 'water' ? Droplets : Zap;
+    return type === 'agua' ? Droplets : Zap;
   };
 
   const getMeterColor = (type: string) => {
-    return type === 'water' 
+    return type === 'agua' 
       ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
       : 'bg-gradient-to-r from-yellow-500 to-orange-500';
   };
@@ -125,7 +125,7 @@ const UserDashboard = () => {
                       </div>
                       <div>
                         <CardTitle className="text-lg capitalize">
-                          {meter.type === 'water' ? 'Água' : 'Energia'}
+                          {meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás'}
                         </CardTitle>
                         <CardDescription>
                           Unidade {meter.unitNumber}
@@ -153,7 +153,7 @@ const UserDashboard = () => {
                           <p className="text-gray-600">Consumo</p>
                           <div className="font-semibold text-lg flex items-center">
                             <TrendingUp className="w-4 h-4 mr-1" />
-                            {meter.type === 'water' ? (
+                            {meter.type === 'agua' ? (
                               <div>
                                 <div>{meter.latestReading.consumption.toLocaleString('pt-BR')}m³</div>
                                 <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toLocaleString('pt-BR')} litros)</div>
@@ -165,7 +165,7 @@ const UserDashboard = () => {
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 space-y-1">
-                        <p>{new Date(meter.latestReading.date).toLocaleDateString('pt-BR')} às {new Date(meter.latestReading.date).toLocaleTimeString('pt-BR')}</p>
+                        <p>{new Date(meter.latestReading.readingDate || '').toLocaleDateString('pt-BR')} às {new Date(meter.latestReading.readingDate || '').toLocaleTimeString('pt-BR')}</p>
                         {meter.latestReading.launchedBy && (
                           <p>Lançado por: {meter.latestReading.launchedBy}</p>
                         )}

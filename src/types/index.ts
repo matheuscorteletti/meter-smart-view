@@ -49,7 +49,6 @@ export interface Meter {
   unitNumber?: string;
   buildingName?: string;
   active?: boolean;
-  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -60,7 +59,6 @@ export interface Reading {
   reading: number;
   consumption: number;
   readingDate?: string;
-  date?: string; // compatibilidade
   readerId?: string;
   notes?: string;
   isAlert?: boolean;

@@ -64,7 +64,7 @@ const MeterManagement = () => {
         unitNumber: unit?.number || 'N/A',
         buildingId: unit?.buildingId || '',
         buildingName: building?.name || 'N/A',
-        isActive: meter.isActive !== false // Default para ativo se não especificado
+        isActive: meter.active !== false // Default para ativo se não especificado
       };
     });
     
@@ -91,12 +91,12 @@ const MeterManagement = () => {
     const newMeter: Meter = {
       id: `meter-${Date.now()}`,
       unitId: formData.unitId,
-      type: formData.type as 'water' | 'energy',
+      type: formData.type === 'water' ? 'agua' : formData.type === 'energy' ? 'energia' : 'gas',
       totalDigits: parseInt(formData.totalDigits),
       calculationDigits: parseInt(formData.calculationDigits),
       initialReading: parseInt(formData.initialReading),
       threshold: parseInt(formData.threshold),
-      isActive: true,
+      active: true,
     };
 
     const currentMeters = getMeters();
@@ -144,7 +144,7 @@ const MeterManagement = () => {
         ? { 
             ...meter, 
             unitId: formData.unitId,
-            type: formData.type as 'water' | 'energy',
+            type: formData.type === 'water' ? 'agua' : formData.type === 'energy' ? 'energia' : 'gas' as 'agua' | 'energia' | 'gas',
             totalDigits: parseInt(formData.totalDigits),
             calculationDigits: parseInt(formData.calculationDigits),
             initialReading: parseInt(formData.initialReading),
@@ -194,7 +194,7 @@ const MeterManagement = () => {
     const currentMeters = getMeters();
     const updatedMeters = currentMeters.map(m =>
       m.id === meter.id
-        ? { ...m, isActive: !meter.isActive }
+        ? { ...m, active: !meter.isActive }
         : m
     );
 
@@ -208,11 +208,11 @@ const MeterManagement = () => {
   };
 
   const getMeterIcon = (type: string) => {
-    return type === 'water' ? Droplets : Zap;
+    return type === 'agua' ? Droplets : Zap;
   };
 
   const getMeterColor = (type: string) => {
-    return type === 'water' 
+    return type === 'agua' 
       ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
       : 'bg-gradient-to-r from-yellow-500 to-orange-500';
   };
@@ -460,17 +460,17 @@ const MeterManagement = () => {
                             </div>
                             <div>
                               <CardTitle className="text-lg capitalize">
-                                {meter.type === 'water' ? 'Água' : 'Energia'}
+                                {meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás'}
                               </CardTitle>
                               <CardDescription>Unidade {meter.unitNumber}</CardDescription>
                             </div>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Badge 
-                              variant={meter.isActive ? (meter.type === 'water' ? 'default' : 'secondary') : 'outline'}
-                              className={meter.isActive ? (meter.type === 'water' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800') : 'bg-gray-100 text-gray-600'}
+                             variant={meter.isActive ? (meter.type === 'agua' ? 'default' : 'secondary') : 'outline'}
+                              className={meter.isActive ? (meter.type === 'agua' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800') : 'bg-gray-100 text-gray-600'}
                             >
-                              {meter.isActive ? (meter.type === 'water' ? 'Água' : 'Energia') : 'Inativo'}
+                              {meter.isActive ? (meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás') : 'Inativo'}
                             </Badge>
                             <div className="flex space-x-1">
                               <Button

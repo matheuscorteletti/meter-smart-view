@@ -224,12 +224,12 @@ const ReportsDialog = () => {
     if (selectedPeriod === 'custom' && startDate && endDate) {
       dateFrom = startDate;
       filteredReadings = filteredReadings.filter(r => {
-        const readingDate = new Date(r.date);
+        const readingDate = new Date(r.readingDate || '');
         return readingDate >= startDate && readingDate <= endDate;
       });
     } else {
       dateFrom.setDate(now.getDate() - parseInt(selectedPeriod));
-      filteredReadings = filteredReadings.filter(r => new Date(r.date) >= dateFrom);
+      filteredReadings = filteredReadings.filter(r => new Date(r.readingDate || '') >= dateFrom);
     }
 
     if (selectedBuilding !== 'all' || selectedUnit !== 'all') {
@@ -249,16 +249,16 @@ const ReportsDialog = () => {
 
     // Processar dados
     const totalWater = filteredReadings
-      .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
+      .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'agua')
       .reduce((sum, r) => sum + r.consumption, 0);
     
     const totalEnergy = filteredReadings
-      .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energy')
+      .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energia')
       .reduce((sum, r) => sum + r.consumption, 0);
 
     const alerts = filteredReadings.filter(r => r.isAlert).length;
     const totalReadings = filteredReadings.length;
-    const activeMeters = metersData.filter(m => m.isActive !== false).length;
+    const activeMeters = metersData.filter(m => m.active !== false).length;
 
     // Gerar PDF usando jsPDF
     const doc = new jsPDF();
@@ -370,11 +370,11 @@ const ReportsDialog = () => {
 
       // Gráfico Expandido: Consumo por Tipo (maior)
       const waterConsumption = filteredReadings
-        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'water')
+        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'agua')
         .reduce((sum, r) => sum + r.consumption, 0);
       
       const energyConsumption = filteredReadings
-        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energy')
+        .filter(r => metersData.find(m => m.id === r.meterId)?.type === 'energia')
         .reduce((sum, r) => sum + r.consumption, 0);
 
       const consumptionByType = [
@@ -424,11 +424,11 @@ const ReportsDialog = () => {
 
         // Consumo por tipo neste prédio
         const buildingWaterConsumption = buildingReadings
-          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'water')
+          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'agua')
           .reduce((sum, r) => sum + r.consumption, 0);
         
         const buildingEnergyConsumption = buildingReadings
-          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'energy')
+          .filter(r => validMetersData.find(m => m.id === r.meterId)?.type === 'energia')
           .reduce((sum, r) => sum + r.consumption, 0);
 
         const buildingConsumptionByType = [
@@ -486,7 +486,7 @@ const ReportsDialog = () => {
       const timeSeriesData = last7Days.map(date => {
         const validFilteredReadings = Array.isArray(filteredReadings) ? filteredReadings : [];
         const dayReadings = validFilteredReadings.filter(r => 
-          new Date(r.date).toISOString().split('T')[0] === date
+          new Date(r.readingDate || '').toISOString().split('T')[0] === date
         );
         const totalConsumption = dayReadings.reduce((sum, r) => sum + r.consumption, 0);
         
@@ -517,7 +517,7 @@ const ReportsDialog = () => {
       const validMetersData = Array.isArray(metersData) ? metersData : [];
       
       validFilteredReadings.forEach(reading => {
-        const dateKey = format(new Date(reading.date), 'dd/MM/yyyy');
+        const dateKey = format(new Date(reading.readingDate || ''), 'dd/MM/yyyy');
         if (!readingsByDate[dateKey]) {
           readingsByDate[dateKey] = [];
         }
@@ -532,10 +532,10 @@ const ReportsDialog = () => {
           checkPageSpace(18);
           
           const waterReadings = readings.filter(r => 
-            validMetersData.find(m => m.id === r.meterId)?.type === 'water'
+            validMetersData.find(m => m.id === r.meterId)?.type === 'agua'
           );
           const energyReadings = readings.filter(r => 
-            validMetersData.find(m => m.id === r.meterId)?.type === 'energy'
+            validMetersData.find(m => m.id === r.meterId)?.type === 'energia'
           );
           const alertsCount = readings.filter(r => r.isAlert).length;
           const totalConsumption = readings.reduce((sum, r) => sum + r.consumption, 0);
@@ -589,10 +589,10 @@ const ReportsDialog = () => {
         
         if (buildingAlerts.length > 0) {
           const waterAlerts = buildingAlerts.filter(r => 
-            metersData.find(m => m.id === r.meterId)?.type === 'water'
+            metersData.find(m => m.id === r.meterId)?.type === 'agua'
           ).length;
           const energyAlerts = buildingAlerts.filter(r => 
-            metersData.find(m => m.id === r.meterId)?.type === 'energy'
+            metersData.find(m => m.id === r.meterId)?.type === 'energia'
           ).length;
           
           doc.setFontSize(10);
@@ -748,7 +748,7 @@ const ReportsDialog = () => {
       const validMetersData = Array.isArray(metersData) ? metersData : [];
       
       const sortedReadings = validFilteredReadings
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => new Date(b.readingDate || '').getTime() - new Date(a.readingDate || '').getTime())
         .slice(0, 25);
       
       sortedReadings.forEach((reading, index) => {
@@ -773,12 +773,12 @@ const ReportsDialog = () => {
         }
         
         doc.setFontSize(7);
-        doc.text(format(new Date(reading.date), 'dd/MM/yy'), 22, yPos + 2);
+        doc.text(format(new Date(reading.readingDate || ''), 'dd/MM/yy'), 22, yPos + 2);
         doc.text(building.name.substring(0, 12), 40, yPos + 2);
         doc.text(unit.number.substring(0, 8), 70, yPos + 2);
-        doc.text(meter.type === 'water' ? 'Água' : 'Energia', 90, yPos + 2);
+        doc.text(meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás', 90, yPos + 2);
         doc.text(reading.reading.toFixed(1), 110, yPos + 2);
-        const consumptionText = meter.type === 'water' 
+        const consumptionText = meter.type === 'agua' 
           ? `${reading.consumption.toFixed(1)}m³`  
           : `${reading.consumption.toFixed(1)}kWh`;
         doc.text(consumptionText, 130, yPos + 2);
