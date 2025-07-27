@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator 
 } from '@/components/ui/dropdown-menu';
-import { Building2, LogOut, User, Shield, Eye, UserCheck, RotateCcw, Settings, Lock } from 'lucide-react';
+import { Building2, LogOut, User, Shield, Eye, Settings, Lock } from 'lucide-react';
 import ProfileEditDialog from '@/components/user/ProfileEditDialog';
 import ChangePasswordDialog from '@/components/user/ChangePasswordDialog';
 
@@ -18,7 +18,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout, switchProfile, isAdminSwitched } = useAuth();
+  const { user, logout } = useAuth();
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
@@ -67,17 +67,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             <div className="flex items-center space-x-4">
-              {isAdminSwitched && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => switchProfile('admin')}
-                  className="hidden sm:flex items-center space-x-2 text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Voltar Admin</span>
-                </Button>
-              )}
 
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium text-gray-900">{user?.name}</p>
@@ -109,11 +98,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <p className="text-xs text-gray-500">
                           {getRoleLabel(user?.role || 'user')}
                         </p>
-                        {isAdminSwitched && (
-                          <p className="text-xs text-orange-600 font-medium mt-1">
-                            Admin simulando
-                          </p>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -133,49 +117,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <Lock className="w-4 h-4" />
                     <span>Alterar Senha</span>
                   </DropdownMenuItem>
-                  
-                  {(user?.role === 'admin' || isAdminSwitched) && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {isAdminSwitched && (
-                        <DropdownMenuItem 
-                          onClick={() => switchProfile('admin')}
-                          className="flex items-center space-x-2 text-red-600"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                          <span>Voltar para Admin</span>
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem 
-                        onClick={() => switchProfile('admin')}
-                        className="flex items-center space-x-2"
-                        disabled={user?.role === 'admin' && !isAdminSwitched}
-                      >
-                        <Shield className="w-4 h-4 text-red-600" />
-                        <span>Admin</span>
-                        {user?.role === 'admin' && !isAdminSwitched && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => switchProfile('user')}
-                        className="flex items-center space-x-2"
-                        disabled={user?.role === 'user' && !isAdminSwitched}
-                      >
-                        <User className="w-4 h-4 text-blue-600" />
-                        <span>Usuário</span>
-                        {user?.role === 'user' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => switchProfile('viewer')}
-                        className="flex items-center space-x-2"
-                        disabled={user?.role === 'viewer' && !isAdminSwitched}
-                      >
-                        <Eye className="w-4 h-4 text-purple-600" />
-                        <span>Visualizador</span>
-                        {user?.role === 'viewer' && <UserCheck className="w-4 h-4 ml-auto text-green-600" />}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
                   
                   <DropdownMenuItem 
                     onClick={logout}
