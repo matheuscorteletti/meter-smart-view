@@ -1,47 +1,47 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building } from '@/types';
-import { getBuildings, saveBuildings } from '@/lib/storage';
+import { useBuildings, useBuildingMutation } from '@/hooks/useSupabaseData';
 import { Building2, Plus, MapPin, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const BuildingManagement = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
+  const { data: buildings = [], isLoading } = useBuildings();
+  const buildingMutation = useBuildingMutation();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '' });
 
-  useEffect(() => {
-    setBuildings(getBuildings());
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newBuilding: Building = {
-      id: `building-${Date.now()}`,
-      name: formData.name,
-      address: formData.address,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedBuildings = [...buildings, newBuilding];
-    setBuildings(updatedBuildings);
-    saveBuildings(updatedBuildings);
-    
-    setFormData({ name: '', address: '' });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Edifício cadastrado",
-      description: "Edifício adicionado com sucesso!",
-    });
+    try {
+      await buildingMutation.mutateAsync({
+        name: formData.name,
+        address: formData.address,
+      });
+      
+      setFormData({ name: '', address: '' });
+      setIsDialogOpen(false);
+      
+      toast({
+        title: "Edifício cadastrado",
+        description: "Edifício adicionado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível cadastrar o edifício.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEdit = (building: Building) => {
@@ -50,28 +50,33 @@ const BuildingManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingBuilding) return;
 
-    const updatedBuildings = buildings.map(building =>
-      building.id === editingBuilding.id
-        ? { ...building, name: formData.name, address: formData.address }
-        : building
-    );
-
-    setBuildings(updatedBuildings);
-    saveBuildings(updatedBuildings);
-    
-    setFormData({ name: '', address: '' });
-    setEditingBuilding(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Edifício atualizado",
-      description: "Edifício editado com sucesso!",
-    });
+    try {
+      await buildingMutation.mutateAsync({
+        id: editingBuilding.id,
+        name: formData.name,
+        address: formData.address,
+      });
+      
+      setFormData({ name: '', address: '' });
+      setEditingBuilding(null);
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Edifício atualizado",
+        description: "Edifício editado com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o edifício.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -156,8 +161,13 @@ const BuildingManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {buildings.map((building) => (
+      {isLoading ? (
+        <div className="text-center py-8">
+          <p>Carregando edifícios...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {buildings.map((building) => (
           <Card key={building.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -184,13 +194,12 @@ const BuildingManagement = () => {
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm">{building.address}</span>
               </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Criado em {new Date(building.createdAt).toLocaleDateString('pt-BR')}
-              </p>
+              {/* Remover data de criação por enquanto */}
             </CardContent>
           </Card>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {buildings.length === 0 && (
         <Card className="text-center py-12">

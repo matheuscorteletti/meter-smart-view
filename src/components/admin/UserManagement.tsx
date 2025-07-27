@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, User } from '@/types';
-import { getBuildings, getUnits } from '@/lib/storage';
+import { useBuildings, useUnits, useUsers } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 import { Users, Plus, Edit, Shield, UserCheck, Eye } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -18,9 +19,10 @@ interface UserWithDetails extends User {
 }
 
 const UserManagement = () => {
-  const [buildings, setBuildings] = useState<Building[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [users, setUsers] = useState<UserWithDetails[]>([]);
+  const { data: buildings = [], isLoading: buildingsLoading } = useBuildings();
+  const { data: units = [], isLoading: unitsLoading } = useUnits();
+  const { data: users = [], isLoading: usersLoading, refetch: refetchUsers } = useUsers();
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserWithDetails | null>(null);
@@ -30,49 +32,26 @@ const UserManagement = () => {
     role: '',
   });
 
-  useEffect(() => {
-    const buildingsData = getBuildings();
-    const unitsData = getUnits();
+  // Converter usuários para o formato com detalhes
+  const usersWithDetails: UserWithDetails[] = users.map(user => {
+    const building = buildings.find(b => b.id === user.buildingId);
+    const unit = units.find(u => u.id === user.unitId);
     
-    setBuildings(buildingsData);
-    setUnits(unitsData);
-
-    // Usuários demo
-    const demoUsers: UserWithDetails[] = [
-      {
-        id: 'admin-1',
-        name: 'Administrador',
-        email: 'admin@demo.com',
-        role: 'admin',
-      },
-      {
-        id: 'user-1013',
-        name: 'João Silva',
-        email: 'user@demo.com',
-        role: 'user',
-      },
-      {
-        id: 'viewer-1',
-        name: 'Maria Santos',
-        email: 'viewer@demo.com',
-        role: 'viewer',
-      },
-    ];
-    
-    setUsers(demoUsers);
-  }, []);
+    return {
+      ...user,
+      buildingName: building?.name,
+      unitNumber: unit?.number,
+    };
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newUser: UserWithDetails = {
-      id: `user-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      role: formData.role as 'admin' | 'user' | 'viewer',
-    };
-
-    setUsers([...users, newUser]);
+    // TODO: Implementar criação de usuário via Supabase Auth + Profile
+    toast({
+      title: "Funcionalidade em desenvolvimento",
+      description: "A criação de usuários será implementada via Supabase Auth.",
+    });
     
     setFormData({
       name: '',
@@ -80,11 +59,6 @@ const UserManagement = () => {
       role: '',
     });
     setIsDialogOpen(false);
-    
-    toast({
-      title: "Usuário cadastrado",
-      description: "Usuário adicionado com sucesso!",
-    });
   };
 
   const handleEdit = (user: UserWithDetails) => {
@@ -97,36 +71,45 @@ const UserManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingUser) return;
 
-    const updatedUsers = users.map(user =>
-      user.id === editingUser.id
-        ? {
-            ...user,
-            name: formData.name,
-            email: formData.email,
-            role: formData.role as 'admin' | 'user' | 'viewer',
-          }
-        : user
-    );
+    try {
+      // Atualizar perfil via Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: formData.name,
+          role: formData.role,
+        })
+        .eq('id', editingUser.id);
 
-    setUsers(updatedUsers);
-    
-    setFormData({
-      name: '',
-      email: '',
-      role: '',
-    });
-    setEditingUser(null);
-    setIsEditDialogOpen(false);
-    
-    toast({
-      title: "Usuário atualizado",
-      description: "Usuário editado com sucesso!",
-    });
+      if (error) throw error;
+
+      await refetchUsers();
+      
+      setFormData({
+        name: '',
+        email: '',
+        role: '',
+      });
+      setEditingUser(null);
+      setIsEditDialogOpen(false);
+      
+      toast({
+        title: "Usuário atualizado",
+        description: "Usuário editado com sucesso!",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o usuário.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getUserIcon = (role: string) => {
@@ -243,8 +226,13 @@ const UserManagement = () => {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {users.map((user) => {
+      {usersLoading ? (
+        <div className="text-center py-8">
+          <p>Carregando usuários...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {usersWithDetails.map((user) => {
           const UserIcon = getUserIcon(user.role);
           
           return (
@@ -283,8 +271,9 @@ const UserManagement = () => {
               </CardContent>
             </Card>
           );
-        })}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };
