@@ -283,19 +283,32 @@ export const useMeterMutation = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (meter: Partial<Meter> & { id?: string }) => {
+    mutationFn: async (meter: Partial<Meter> & { id?: string; delete?: boolean }) => {
+      if (meter.delete && meter.id) {
+        // Delete - marcar como inativo em vez de deletar
+        const { data, error } = await supabase
+          .from('meters')
+          .update({ active: false })
+          .eq('id', meter.id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data;
+      }
+      
       const meterData = {
         unit_id: meter.unitId,
-        serial_number: meter.serialNumber,
+        serial_number: meter.serialNumber || '',
         type: meter.type,
         brand: meter.brand,
         model: meter.model,
         installation_date: meter.installationDate,
-        multiplier: meter.multiplier,
+        multiplier: meter.multiplier || 1,
         threshold: meter.threshold,
-        total_digits: meter.totalDigits,
-        calculation_digits: meter.calculationDigits,
-        initial_reading: meter.initialReading,
+        total_digits: meter.totalDigits || 8,
+        calculation_digits: meter.calculationDigits || 5,
+        initial_reading: meter.initialReading || 0,
         active: meter.active ?? true,
       };
       
