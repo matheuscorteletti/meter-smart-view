@@ -14,9 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 interface MeterFormData {
   unitId: string;
   type: string;
-  serialNumber: string;
-  brand: string;
-  model: string;
   totalDigits: string;
   calculationDigits: string;
   initialReading: string;
@@ -36,9 +33,6 @@ const MeterManagement = () => {
   const [formData, setFormData] = useState<MeterFormData>({
     unitId: '',
     type: '',
-    serialNumber: '',
-    brand: '',
-    model: '',
     totalDigits: '8',
     calculationDigits: '5',
     initialReading: '0',
@@ -52,9 +46,6 @@ const MeterManagement = () => {
       await meterMutation.mutateAsync({
         unitId: formData.unitId,
         type: formData.type as 'agua' | 'energia' | 'gas',
-        serialNumber: formData.serialNumber,
-        brand: formData.brand,
-        model: formData.model,
         totalDigits: parseInt(formData.totalDigits),
         calculationDigits: parseInt(formData.calculationDigits),
         initialReading: parseFloat(formData.initialReading),
@@ -64,9 +55,6 @@ const MeterManagement = () => {
       setFormData({
         unitId: '',
         type: '',
-        serialNumber: '',
-        brand: '',
-        model: '',
         totalDigits: '8',
         calculationDigits: '5',
         initialReading: '0',
@@ -92,9 +80,6 @@ const MeterManagement = () => {
     setFormData({
       unitId: meter.unitId,
       type: meter.type,
-      serialNumber: meter.serialNumber || '',
-      brand: meter.brand || '',
-      model: meter.model || '',
       totalDigits: meter.totalDigits?.toString() || '8',
       calculationDigits: meter.calculationDigits?.toString() || '5',
       initialReading: meter.initialReading?.toString() || '0',
@@ -113,9 +98,6 @@ const MeterManagement = () => {
         id: editingMeter.id,
         unitId: formData.unitId,
         type: formData.type as 'agua' | 'energia' | 'gas',
-        serialNumber: formData.serialNumber,
-        brand: formData.brand,
-        model: formData.model,
         totalDigits: parseInt(formData.totalDigits),
         calculationDigits: parseInt(formData.calculationDigits),
         initialReading: parseFloat(formData.initialReading),
@@ -125,9 +107,6 @@ const MeterManagement = () => {
       setFormData({
         unitId: '',
         type: '',
-        serialNumber: '',
-        brand: '',
-        model: '',
         totalDigits: '8',
         calculationDigits: '5',
         initialReading: '0',
@@ -244,9 +223,9 @@ const MeterManagement = () => {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="type">Tipo</Label>
+                  <Label htmlFor="type">Tipo de Medidor</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => setFormData({...formData, type: value})}
@@ -261,54 +240,64 @@ const MeterManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="serialNumber">Número de Série</Label>
-                  <Input
-                    id="serialNumber"
-                    value={formData.serialNumber}
-                    onChange={(e) => setFormData({...formData, serialNumber: e.target.value})}
-                    placeholder="Ex: ABC123456"
-                  />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="totalDigits">Total de Dígitos</Label>
+                    <Input
+                      id="totalDigits"
+                      type="number"
+                      value={formData.totalDigits}
+                      onChange={(e) => setFormData({...formData, totalDigits: e.target.value})}
+                      placeholder="8"
+                      min="4"
+                      max="12"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Quantos dígitos o medidor possui</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="calculationDigits">Dígitos para Cálculo</Label>
+                    <Input
+                      id="calculationDigits"
+                      type="number"
+                      value={formData.calculationDigits}
+                      onChange={(e) => setFormData({...formData, calculationDigits: e.target.value})}
+                      placeholder="5"
+                      min="3"
+                      max="10"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Quantos dígitos considerar no cálculo</p>
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="brand">Marca</Label>
-                  <Input
-                    id="brand"
-                    value={formData.brand}
-                    onChange={(e) => setFormData({...formData, brand: e.target.value})}
-                    placeholder="Ex: Elster"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="model">Modelo</Label>
-                  <Input
-                    id="model"
-                    value={formData.model}
-                    onChange={(e) => setFormData({...formData, model: e.target.value})}
-                    placeholder="Ex: A1800"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="threshold">Limite de Alerta</Label>
-                  <Input
-                    id="threshold"
-                    type="number"
-                    value={formData.threshold}
-                    onChange={(e) => setFormData({...formData, threshold: e.target.value})}
-                    placeholder="50"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="initialReading">Leitura Inicial</Label>
-                  <Input
-                    id="initialReading"
-                    type="number"
-                    value={formData.initialReading}
-                    onChange={(e) => setFormData({...formData, initialReading: e.target.value})}
-                    placeholder="0"
-                    required
-                  />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="initialReading">Leitura Inicial</Label>
+                    <Input
+                      id="initialReading"
+                      type="number"
+                      value={formData.initialReading}
+                      onChange={(e) => setFormData({...formData, initialReading: e.target.value})}
+                      placeholder="0"
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="threshold">Limite de Alerta</Label>
+                    <Input
+                      id="threshold"
+                      type="number"
+                      value={formData.threshold}
+                      onChange={(e) => setFormData({...formData, threshold: e.target.value})}
+                      placeholder="50"
+                      min="0"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Valor acima do qual gerar alerta</p>
+                  </div>
                 </div>
               </div>
               
@@ -349,9 +338,9 @@ const MeterManagement = () => {
                 </Select>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="edit-type">Tipo</Label>
+                  <Label htmlFor="edit-type">Tipo de Medidor</Label>
                   <Select
                     value={formData.type}
                     onValueChange={(value) => setFormData({...formData, type: value})}
@@ -366,15 +355,57 @@ const MeterManagement = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="edit-threshold">Limite de Alerta</Label>
-                  <Input
-                    id="edit-threshold"
-                    type="number"
-                    value={formData.threshold}
-                    onChange={(e) => setFormData({...formData, threshold: e.target.value})}
-                    required
-                  />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-totalDigits">Total de Dígitos</Label>
+                    <Input
+                      id="edit-totalDigits"
+                      type="number"
+                      value={formData.totalDigits}
+                      onChange={(e) => setFormData({...formData, totalDigits: e.target.value})}
+                      min="4"
+                      max="12"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-calculationDigits">Dígitos para Cálculo</Label>
+                    <Input
+                      id="edit-calculationDigits"
+                      type="number"
+                      value={formData.calculationDigits}
+                      onChange={(e) => setFormData({...formData, calculationDigits: e.target.value})}
+                      min="3"
+                      max="10"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-initialReading">Leitura Inicial</Label>
+                    <Input
+                      id="edit-initialReading"
+                      type="number"
+                      value={formData.initialReading}
+                      onChange={(e) => setFormData({...formData, initialReading: e.target.value})}
+                      min="0"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-threshold">Limite de Alerta</Label>
+                    <Input
+                      id="edit-threshold"
+                      type="number"
+                      value={formData.threshold}
+                      onChange={(e) => setFormData({...formData, threshold: e.target.value})}
+                      min="0"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
               
@@ -454,19 +485,21 @@ const MeterManagement = () => {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Limite:</span>
-                          <span className="font-medium">{meter.threshold}</span>
+                          <span className="text-gray-600">Total de dígitos:</span>
+                          <span className="font-medium">{meter.totalDigits}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Dígitos para cálculo:</span>
+                          <span className="font-medium">{meter.calculationDigits}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Leitura inicial:</span>
                           <span className="font-medium">{meter.initialReading}</span>
                         </div>
-                        {meter.serialNumber && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Série:</span>
-                            <span className="font-medium">{meter.serialNumber}</span>
-                          </div>
-                        )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Limite de alerta:</span>
+                          <span className="font-medium">{meter.threshold}</span>
+                        </div>
                         <Badge variant={meter.active ? "default" : "secondary"}>
                           {meter.active ? "Ativo" : "Inativo"}
                         </Badge>
