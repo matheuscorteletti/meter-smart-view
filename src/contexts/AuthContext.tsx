@@ -1,15 +1,15 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { User as AppUser } from '@/types';
+import { User } from '@/types';
+import { getUser, saveUser, removeUser, initializeSampleData } from '@/lib/storage';
 
 interface AuthContextType {
-  user: AppUser | null;
-  session: Session | null;
+  user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  switchProfile: (newRole: 'admin' | 'user' | 'viewer') => void;
   isLoading: boolean;
+  isAdminSwitched: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,162 +22,191 @@ export const useAuth = () => {
   return context;
 };
 
+// Simple password validation
+const validatePassword = (password: string): boolean => {
+  // Senha deve ter pelo menos 6 caracteres
+  return password.length >= 6;
+};
+
+// Simular hash da senha (em produção, use bcrypt ou similar)
+const hashPassword = (password: string): string => {
+  // Esta é uma implementação básica apenas para demonstração
+  // Em produção, use uma biblioteca de hash segura
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString();
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const fetchUserProfile = async (userId: string, userSession: Session | null) => {
-    try {
-      console.log('Buscando perfil para usuário:', userId);
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Erro ao buscar perfil:', error);
-        // Se não encontrar perfil, criar um perfil básico
-        if (error.code === 'PGRST116') { // Not found
-          console.log('Perfil não encontrado, criando perfil padrão');
-          return {
-            id: userId,
-            name: userSession?.user?.user_metadata?.name || 'Usuário',
-            email: userSession?.user?.email || '',
-            role: 'user' as 'admin' | 'user' | 'viewer',
-            buildingId: undefined,
-            unitId: undefined,
-          };
-        }
-        return null;
-      }
-
-      console.log('Perfil encontrado:', profile);
-      return {
-        id: profile.id,
-        name: profile.name,
-        email: userSession?.user?.email || '',
-        role: profile.role as 'admin' | 'user' | 'viewer',
-        buildingId: profile.building_id,
-        unitId: profile.unit_id,
-      };
-    } catch (error) {
-      console.error('Erro ao buscar perfil:', error);
-      // Retornar um perfil padrão em caso de erro
-      return {
-        id: userId,
-        name: userSession?.user?.user_metadata?.name || 'Usuário',
-        email: userSession?.user?.email || '',
-        role: 'user' as 'admin' | 'user' | 'viewer',
-        buildingId: undefined,
-        unitId: undefined,
-      };
-    }
-  };
+  const [loginAttempts, setLoginAttempts] = useState<{ [email: string]: { count: number; lastAttempt: number } }>({});
+  const [originalAdminUser, setOriginalAdminUser] = useState<User | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
-        
-        console.log('Auth state changed:', event, session);
-        setSession(session);
-        
-        if (session?.user) {
-          // Use setTimeout to defer async calls
-          setTimeout(() => {
-            if (!mounted) return;
-            fetchUserProfile(session.user.id, session).then((userProfile) => {
-              if (!mounted) return;
-              console.log('Profile fetched:', userProfile);
-              setUser(userProfile);
-              setIsLoading(false);
-            }).catch((error) => {
-              if (!mounted) return;
-              console.error('Error fetching profile:', error);
-              setIsLoading(false);
-            });
-          }, 0);
-        } else {
-          setUser(null);
-          setIsLoading(false);
-        }
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      if (session?.user) {
-        setSession(session);
-        fetchUserProfile(session.user.id, session).then((userProfile) => {
-          if (!mounted) return;
-          console.log('Initial profile fetched:', userProfile);
-          setUser(userProfile);
-          setIsLoading(false);
-        }).catch((error) => {
-          if (!mounted) return;
-          console.error('Error fetching initial profile:', error);
-          setIsLoading(false);
-        });
-      } else {
-        setSession(null);
-        setUser(null);
-        setIsLoading(false);
-      }
-    });
-
-    // Set a timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      if (mounted) {
-        console.warn('Loading timeout reached, stopping loading state');
-        setIsLoading(false);
-      }
-    }, 10000); // 10 seconds timeout
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-      clearTimeout(loadingTimeout);
-    };
+    initializeSampleData();
+    const savedUser = getUser();
+    setUser(savedUser);
+    
+    // Se o usuário salvo é admin, salvar como original
+    if (savedUser?.role === 'admin') {
+      setOriginalAdminUser(savedUser);
+    }
+    
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    // Validação básica de entrada
+    if (!email || !password) {
+      return { success: false, error: 'Email e senha são obrigatórios' };
+    }
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
+    if (!validatePassword(password)) {
+      return { success: false, error: 'A senha deve ter pelo menos 6 caracteres' };
+    }
 
+    // Verificar tentativas de login (rate limiting básico)
+    const now = Date.now();
+    const userAttempts = loginAttempts[email] || { count: 0, lastAttempt: 0 };
+    
+    // Reset contador se passou mais de 15 minutos
+    if (now - userAttempts.lastAttempt > 15 * 60 * 1000) {
+      userAttempts.count = 0;
+    }
+
+    // Bloquear se muitas tentativas
+    if (userAttempts.count >= 5) {
+      const timeLeft = Math.ceil((15 * 60 * 1000 - (now - userAttempts.lastAttempt)) / 60000);
+      return { 
+        success: false, 
+        error: `Muitas tentativas de login. Tente novamente em ${timeLeft} minutos.` 
+      };
+    }
+
+    // Credenciais válidas com senhas hasheadas
+    const validCredentials = {
+      'admin@demo.com': {
+        passwordHash: hashPassword('admin123'),
+        user: {
+          id: 'admin-1',
+          name: 'Administrador',
+          email: 'admin@demo.com',
+          role: 'admin' as const,
+        }
+      },
+      'user@demo.com': {
+        passwordHash: hashPassword('user123'),
+        user: {
+          id: 'user-1013',
+          name: 'João Silva',
+          email: 'user@demo.com',
+          role: 'user' as const,
+          buildingId: 'building-1013',
+          unitId: 'unit-1013-externo',
+        }
+      },
+      'viewer@demo.com': {
+        passwordHash: hashPassword('viewer123'),
+        user: {
+          id: 'viewer-1',
+          name: 'Maria Santos',
+          email: 'viewer@demo.com',
+          role: 'viewer' as const,
+        }
+      },
+    };
+
+    const credential = validCredentials[email as keyof typeof validCredentials];
+    const providedPasswordHash = hashPassword(password);
+    
+    if (credential && credential.passwordHash === providedPasswordHash) {
+      // Login bem-sucedido - resetar tentativas
+      setLoginAttempts(prev => ({ ...prev, [email]: { count: 0, lastAttempt: now } }));
+      
+      setUser(credential.user);
+      saveUser(credential.user);
       return { success: true };
-    } catch (error) {
-      return { success: false, error: 'Erro ao fazer login' };
+    } else {
+      // Login falhou - incrementar tentativas
+      setLoginAttempts(prev => ({
+        ...prev,
+        [email]: {
+          count: userAttempts.count + 1,
+          lastAttempt: now
+        }
+      }));
+      
+      return { success: false, error: 'Email ou senha incorretos' };
     }
   };
 
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
+  const switchProfile = (newRole: 'admin' | 'user' | 'viewer') => {
+    if (!user) return;
+    
+    // Se não temos o admin original salvo e o usuário atual é admin, salvar
+    if (!originalAdminUser && user.role === 'admin') {
+      setOriginalAdminUser(user);
+    }
+    
+    // Se está tentando voltar para admin e temos o admin original, usar ele
+    if (newRole === 'admin' && originalAdminUser) {
+      setUser(originalAdminUser);
+      saveUser(originalAdminUser);
+      return;
+    }
+    
+    // Só permitir troca se for admin original ou admin atual
+    if (user.role !== 'admin' && !originalAdminUser) return;
+    
+    const profileData = {
+      admin: originalAdminUser || {
+        id: 'admin-1',
+        name: 'Administrador',
+        email: 'admin@demo.com',
+        role: 'admin' as const,
+      },
+      user: {
+        id: 'user-1013',
+        name: 'João Silva',
+        email: 'user@demo.com',
+        role: 'user' as const,
+        buildingId: 'building-1013',
+        unitId: 'unit-1013-externo',
+      },
+      viewer: {
+        id: 'viewer-1',
+        name: 'Maria Santos',
+        email: 'viewer@demo.com',
+        role: 'viewer' as const,
+      }
+    };
+
+    const newUser = profileData[newRole];
+    setUser(newUser);
+    saveUser(newUser);
   };
+
+  const logout = () => {
+    setUser(null);
+    setOriginalAdminUser(null);
+    removeUser();
+  };
+
+  const isAdminSwitched = originalAdminUser !== null && user?.role !== 'admin';
 
   return (
     <AuthContext.Provider value={{ 
       user, 
-      session,
       login, 
       logout, 
-      isLoading
+      switchProfile, 
+      isLoading, 
+      isAdminSwitched 
     }}>
       {children}
     </AuthContext.Provider>

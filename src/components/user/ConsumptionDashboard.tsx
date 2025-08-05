@@ -6,258 +6,409 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Building, Unit, Meter, Reading } from '@/types';
-import { useBuildings, useUnits, useMeters, useReadings } from '@/hooks/useSupabaseData';
+import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import { TrendingUp, Calendar as CalendarIcon, Download, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { ptBR } from 'date-fns/locale';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import ReportsDialog from './ReportsDialog';
+
+interface ConsumptionData {
+  date: string;
+  agua: number;
+  energia: number;
+  building: string;
+  unit: string;
+}
 
 const ConsumptionDashboard = () => {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<string>('all');
   const [selectedUnit, setSelectedUnit] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('30');
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [chartData, setChartData] = useState<any[]>([]);
-
-  const { data: buildingsData = [] } = useBuildings();
-  const { data: unitsData = [] } = useUnits();
-  const { data: metersData = [] } = useMeters();
-  const { data: readingsData = [] } = useReadings();
+  const [consumptionData, setConsumptionData] = useState<ConsumptionData[]>([]);
+  const [summaryData, setSummaryData] = useState({
+    totalWater: 0,
+    totalEnergy: 0,
+    avgWater: 0,
+    avgEnergy: 0,
+    alerts: 0,
+  });
 
   useEffect(() => {
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
     setBuildings(buildingsData);
     setUnits(unitsData);
-  }, [buildingsData, unitsData]);
+  }, []);
 
   useEffect(() => {
+    // Filtrar unidades quando um edifício é selecionado
     if (selectedBuilding === 'all') {
-      setUnits(unitsData);
+      setUnits(getUnits());
       setSelectedUnit('all');
     } else {
-      const filteredUnits = unitsData.filter(unit => unit.buildingId === selectedBuilding);
+      const filteredUnits = getUnits().filter(unit => unit.buildingId === selectedBuilding);
       setUnits(filteredUnits);
       setSelectedUnit('all');
     }
-  }, [selectedBuilding, unitsData]);
-
-  const loadConsumptionData = () => {
-    let filteredReadings = readingsData;
-
-    // Filtrar por edifício
-    if (selectedBuilding !== 'all') {
-      const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuilding);
-      const buildingUnitIds = buildingUnits.map(unit => unit.id);
-      const buildingMeters = metersData.filter(meter => buildingUnitIds.includes(meter.unitId));
-      const buildingMeterIds = buildingMeters.map(meter => meter.id);
-      filteredReadings = filteredReadings.filter(reading => buildingMeterIds.includes(reading.meterId));
-    }
-
-    // Filtrar por unidade
-    if (selectedUnit !== 'all') {
-      const unitMeters = metersData.filter(meter => meter.unitId === selectedUnit);
-      const unitMeterIds = unitMeters.map(meter => meter.id);
-      filteredReadings = filteredReadings.filter(reading => unitMeterIds.includes(reading.meterId));
-    }
-
-    // Processar dados para o gráfico
-    const consumptionByMonth = filteredReadings.reduce((acc: any, reading) => {
-      const meter = metersData.find(m => m.id === reading.meterId);
-      if (!meter) return acc;
-
-      const unit = unitsData.find(u => u.id === meter?.unitId);
-      if (!unit) return acc;
-
-      const month = new Date(reading.readingDate || '').toLocaleDateString('pt-BR', { 
-        month: 'short', 
-        year: 'numeric' 
-      });
-
-      if (!acc[month]) {
-        acc[month] = { month, agua: 0, energia: 0 };
-      }
-
-      if (meter.type === 'agua') {
-        acc[month].agua += reading.consumption || 0;
-      } else if (meter.type === 'energia') {
-        acc[month].energia += reading.consumption || 0;
-      }
-
-      return acc;
-    }, {});
-
-    const chartData = Object.values(consumptionByMonth);
-    setChartData(chartData);
-  };
+  }, [selectedBuilding]);
 
   useEffect(() => {
     loadConsumptionData();
-  }, [selectedBuilding, selectedUnit, startDate, endDate, buildingsData, unitsData, metersData, readingsData]);
+  }, [selectedBuilding, selectedUnit, selectedPeriod, startDate, endDate]);
 
-  const chartConfig = {
-    agua: {
-      label: "Água (m³)",
-      color: "hsl(221, 83%, 53%)",
-    },
-    energia: {
-      label: "Energia (kWh)",
-      color: "hsl(142, 76%, 36%)",
-    },
+  const loadConsumptionData = () => {
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
+    const metersData = getMeters();
+    const readingsData = getReadings();
+
+    let filteredReadings = readingsData;
+
+    // Filtrar por período
+    const now = new Date();
+    let dateFrom = new Date();
+    
+    if (selectedPeriod === 'custom' && startDate && endDate) {
+      dateFrom = startDate;
+      filteredReadings = filteredReadings.filter(r => {
+        const readingDate = new Date(r.date);
+        return readingDate >= startDate && readingDate <= endDate;
+      });
+    } else {
+      dateFrom.setDate(now.getDate() - parseInt(selectedPeriod));
+      filteredReadings = filteredReadings.filter(r => new Date(r.date) >= dateFrom);
+    }
+
+    // Filtrar por edifício e unidade
+    if (selectedBuilding !== 'all' || selectedUnit !== 'all') {
+      let buildingUnits = unitsData;
+      
+      if (selectedBuilding !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.buildingId === selectedBuilding);
+      }
+      
+      if (selectedUnit !== 'all') {
+        buildingUnits = buildingUnits.filter(u => u.id === selectedUnit);
+      }
+      
+      const buildingMeters = metersData.filter(m => buildingUnits.some(u => u.id === m.unitId));
+      filteredReadings = filteredReadings.filter(r => buildingMeters.some(m => m.id === r.meterId));
+    }
+
+    // Processar dados para gráficos
+    const dailyConsumption = new Map<string, { agua: number; energia: number; count: number }>();
+    
+    filteredReadings.forEach(reading => {
+      const meter = metersData.find(m => m.id === reading.meterId);
+      const unit = unitsData.find(u => u.id === meter?.unitId);
+      const building = buildingsData.find(b => b.id === unit?.buildingId);
+      
+      if (!meter || !unit || !building) return;
+
+      const dateKey = new Date(reading.date).toISOString().split('T')[0];
+      
+      if (!dailyConsumption.has(dateKey)) {
+        dailyConsumption.set(dateKey, { agua: 0, energia: 0, count: 0 });
+      }
+      
+      const dayData = dailyConsumption.get(dateKey)!;
+      if (meter.type === 'water') {
+        dayData.agua += reading.consumption;
+      } else {
+        dayData.energia += reading.consumption;
+      }
+      dayData.count++;
+    });
+
+    // Converter para array para gráficos
+    const chartData: ConsumptionData[] = Array.from(dailyConsumption.entries()).map(([date, data]) => ({
+      date: format(new Date(date), 'dd/MM', { locale: ptBR }),
+      agua: data.agua,
+      energia: data.energia,
+      building: '',
+      unit: '',
+    })).sort((a, b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+
+    setConsumptionData(chartData);
+
+    // Calcular resumo
+    const totalWater = chartData.reduce((sum, item) => sum + item.agua, 0);
+    const totalEnergy = chartData.reduce((sum, item) => sum + item.energia, 0);
+    const alerts = filteredReadings.filter(r => r.isAlert).length;
+
+    setSummaryData({
+      totalWater,
+      totalEnergy,
+      avgWater: chartData.length > 0 ? totalWater / chartData.length : 0,
+      avgEnergy: chartData.length > 0 ? totalEnergy / chartData.length : 0,
+      alerts,
+    });
+  };
+
+  const exportDataToCSV = () => {
+    // Criar dados CSV
+    const csvHeaders = ['Data', 'Água (m³)', 'Água (L)', 'Energia (kWh)'];
+    const csvData = consumptionData.map(item => [
+      item.date,
+      item.agua.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+      (item.agua * 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 }),
+      item.energia.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    // Criar e baixar arquivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `dados-consumo-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Dados exportados",
+      description: "Os dados foram exportados com sucesso para CSV!",
+    });
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-semibold">{`Data: ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="mt-1">
+              {entry.dataKey === 'agua' ? (
+                <>
+                  <p style={{ color: entry.color }}>{`Água: ${entry.value.toLocaleString('pt-BR')}m³`}</p>
+                  <p style={{ color: entry.color }} className="text-sm text-gray-600">{`(${(entry.value * 1000).toLocaleString('pt-BR')} litros)`}</p>
+                </>
+              ) : (
+                <p style={{ color: entry.color }}>{`Energia: ${entry.value.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh`}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard de Consumo</h1>
-        <p className="text-gray-600">Visualize e analise o consumo de água e energia</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Visualização de Consumo</h1>
+          <p className="text-gray-600">Análise detalhada do consumo de água e energia</p>
+        </div>
+        <div className="flex gap-2">
+          <ReportsDialog />
+          <Button variant="outline" onClick={exportDataToCSV}>
+            <Download className="w-4 h-4 mr-2" />
+            Exportar Dados
+          </Button>
+        </div>
       </div>
 
       {/* Filtros */}
       <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
-          <CardDescription>Selecione os critérios para análise</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="building">Edifício</Label>
-              <Select value={selectedBuilding} onValueChange={setSelectedBuilding}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os edifícios" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os edifícios</SelectItem>
-                  {buildings.map((building) => (
-                    <SelectItem key={building.id} value={building.id}>
-                      {building.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="unit">Unidade</Label>
-              <Select value={selectedUnit} onValueChange={setSelectedUnit}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todas as unidades" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as unidades</SelectItem>
-                  {units.map((unit) => (
-                    <SelectItem key={unit.id} value={unit.id}>
-                      Unidade {unit.number}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Data Inicial</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd/MM/yyyy") : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <Label>Data Final</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "dd/MM/yyyy") : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <CardContent className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="space-y-2">
+            <Label>Edifício</Label>
+            <Select value={selectedBuilding} onValueChange={setSelectedBuilding}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Edifícios</SelectItem>
+                {buildings.map(building => (
+                  <SelectItem key={building.id} value={building.id}>
+                    {building.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>Unidade</Label>
+            <Select value={selectedUnit} onValueChange={setSelectedUnit}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Unidades</SelectItem>
+                {units.map(unit => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    Unidade {unit.number}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Período</Label>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="90">Últimos 90 dias</SelectItem>
+                <SelectItem value="custom">Período personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedPeriod === 'custom' && (
+            <>
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "dd/MM/yyyy") : "Selecionar"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data Fim</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "dd/MM/yyyy") : "Selecionar"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
-      {/* Gráfico de Consumo */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="w-5 h-5" />
-            <span>Consumo por Período</span>
-          </CardTitle>
-          <CardDescription>Análise de consumo de água e energia</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="agua" fill="var(--color-agua)" name="Água (m³)" />
-              <Bar dataKey="energia" fill="var(--color-energia)" name="Energia (kWh)" />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-
-      {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Cards de Resumo - Fixed formatting */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Medidores</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{metersData.filter(m => m.active !== false).length}</div>
-            <p className="text-xs text-muted-foreground">Total no sistema</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Leituras Registradas</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{readingsData.length}</div>
-            <p className="text-xs text-muted-foreground">Total de registros</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Alertas Ativos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {readingsData.filter(r => r.isAlert).length}
+            <CardTitle className="text-sm font-medium">Consumo Total Água</CardTitle>
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-white" />
             </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryData.totalWater.toLocaleString('pt-BR')}m³</div>
+            <p className="text-xs text-muted-foreground">
+              {(summaryData.totalWater * 1000).toLocaleString('pt-BR')} litros | Média: {summaryData.avgWater.toLocaleString('pt-BR')}m³/dia
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Consumo Total Energia</CardTitle>
+            <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryData.totalEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh</div>
+            <p className="text-xs text-muted-foreground">Média: {summaryData.avgEnergy.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}kWh/dia</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Alertas</CardTitle>
+            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+              <TrendingUp className="w-4 h-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryData.alerts}</div>
             <p className="text-xs text-muted-foreground">Consumos acima do limite</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Medidores Ativos</CardTitle>
+            <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{getMeters().filter(m => m.isActive !== false).length}</div>
+            <p className="text-xs text-muted-foreground">Total no sistema</p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Gráfico expandido para largura total */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Consumo dos Últimos 30 Dias</CardTitle>
+          <CardDescription>Evolução do consumo ao longo do tempo</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <AreaChart data={consumptionData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="agua" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="Água (m³)" />
+              <Area type="monotone" dataKey="energia" stackId="1" stroke="#10B981" fill="#10B981" name="Energia (kWh)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Tendência de Consumo</CardTitle>
+          <CardDescription>Comparativo detalhado por tipo de recurso</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <LineChart data={consumptionData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="agua" stroke="#3B82F6" strokeWidth={2} name="Água (m³)" />
+              <Line type="monotone" dataKey="energia" stroke="#10B981" strokeWidth={2} name="Energia (kWh)" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
     </div>
   );
 };

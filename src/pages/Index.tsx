@@ -3,26 +3,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import AdminDashboard from "@/components/admin/AdminDashboard";
 import UserDashboard from "@/components/user/UserDashboard";
 import ConsumptionDashboard from "@/components/user/ConsumptionDashboard";
-import AuthForm from "@/components/AuthForm";
+import LoginForm from "@/components/LoginForm";
 import Layout from "@/components/Layout";
-import { Loader2 } from 'lucide-react';
 
 const Index = () => {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   if (!user) {
-    return <AuthForm />;
+    return <LoginForm />;
   }
 
   const renderDashboard = () => {

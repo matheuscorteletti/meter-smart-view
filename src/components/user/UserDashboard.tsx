@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building, Unit, Meter, Reading } from '@/types';
-import { useBuildings, useUnits, useMeters, useReadings } from '@/hooks/useSupabaseData';
+import { getBuildings, getUnits, getMeters, getReadings } from '@/lib/storage';
 import { Building2, Droplets, Zap, AlertTriangle, TrendingUp, ArrowLeft } from 'lucide-react';
 import EditReadingDialog from './EditReadingDialog';
 import BuildingSelector from './BuildingSelector';
@@ -17,29 +17,35 @@ interface MeterWithDetails extends Meter {
 
 const UserDashboard = () => {
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [meters, setMeters] = useState<MeterWithDetails[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { data: buildings = [] } = useBuildings();
-  const { data: units = [] } = useUnits();
-  const { data: allMeters = [] } = useMeters();
-  const { data: readings = [] } = useReadings();
+  useEffect(() => {
+    const buildingsData = getBuildings();
+    setBuildings(buildingsData);
+  }, []);
 
   useEffect(() => {
     if (!selectedBuildingId) return;
 
+    const buildingsData = getBuildings();
+    const unitsData = getUnits();
+    const metersData = getMeters();
+    const readingsData = getReadings();
+
     // Filter units by selected building
-    const buildingUnits = units.filter(unit => unit.buildingId === selectedBuildingId);
+    const buildingUnits = unitsData.filter(unit => unit.buildingId === selectedBuildingId);
     const buildingUnitIds = buildingUnits.map(unit => unit.id);
 
-    const metersWithDetails: MeterWithDetails[] = allMeters
-      .filter(meter => meter.active !== false && buildingUnitIds.includes(meter.unitId))
+    const metersWithDetails: MeterWithDetails[] = metersData
+      .filter(meter => meter.isActive !== false && buildingUnitIds.includes(meter.unitId))
       .map(meter => {
-        const unit = units.find(u => u.id === meter.unitId);
-        const building = buildings.find(b => b.id === unit?.buildingId);
-        const latestReading = readings
+        const unit = unitsData.find(u => u.id === meter.unitId);
+        const building = buildingsData.find(b => b.id === unit?.buildingId);
+        const latestReading = readingsData
           .filter(r => r.meterId === meter.id)
-          .sort((a, b) => new Date(b.readingDate || '').getTime() - new Date(a.readingDate || '').getTime())[0];
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
         
         return {
           ...meter,
@@ -50,7 +56,7 @@ const UserDashboard = () => {
       });
     
     setMeters(metersWithDetails);
-  }, [selectedBuildingId, refreshTrigger, buildings, units, allMeters, readings]);
+  }, [selectedBuildingId, refreshTrigger]);
 
   const handleReadingAdded = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -65,11 +71,11 @@ const UserDashboard = () => {
   };
 
   const getMeterIcon = (type: string) => {
-    return type === 'agua' ? Droplets : Zap;
+    return type === 'water' ? Droplets : Zap;
   };
 
   const getMeterColor = (type: string) => {
-    return type === 'agua' 
+    return type === 'water' 
       ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
       : 'bg-gradient-to-r from-yellow-500 to-orange-500';
   };
@@ -119,7 +125,7 @@ const UserDashboard = () => {
                       </div>
                       <div>
                         <CardTitle className="text-lg capitalize">
-                          {meter.type === 'agua' ? 'Água' : meter.type === 'energia' ? 'Energia' : 'Gás'}
+                          {meter.type === 'water' ? 'Água' : 'Energia'}
                         </CardTitle>
                         <CardDescription>
                           Unidade {meter.unitNumber}
@@ -147,7 +153,7 @@ const UserDashboard = () => {
                           <p className="text-gray-600">Consumo</p>
                           <div className="font-semibold text-lg flex items-center">
                             <TrendingUp className="w-4 h-4 mr-1" />
-                            {meter.type === 'agua' ? (
+                            {meter.type === 'water' ? (
                               <div>
                                 <div>{meter.latestReading.consumption.toLocaleString('pt-BR')}m³</div>
                                 <div className="text-xs text-gray-500">({(meter.latestReading.consumption * 1000).toLocaleString('pt-BR')} litros)</div>
@@ -159,7 +165,7 @@ const UserDashboard = () => {
                         </div>
                       </div>
                       <div className="text-xs text-gray-500 space-y-1">
-                        <p>{new Date(meter.latestReading.readingDate || '').toLocaleDateString('pt-BR')} às {new Date(meter.latestReading.readingDate || '').toLocaleTimeString('pt-BR')}</p>
+                        <p>{new Date(meter.latestReading.date).toLocaleDateString('pt-BR')} às {new Date(meter.latestReading.date).toLocaleTimeString('pt-BR')}</p>
                         {meter.latestReading.launchedBy && (
                           <p>Lançado por: {meter.latestReading.launchedBy}</p>
                         )}

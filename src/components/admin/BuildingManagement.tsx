@@ -1,47 +1,47 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Building } from '@/types';
-import { useBuildings, useBuildingMutation } from '@/hooks/useSupabaseData';
+import { getBuildings, saveBuildings } from '@/lib/storage';
 import { Building2, Plus, MapPin, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const BuildingManagement = () => {
-  const { data: buildings = [], isLoading } = useBuildings();
-  const buildingMutation = useBuildingMutation();
-  
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [formData, setFormData] = useState({ name: '', address: '' });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    setBuildings(getBuildings());
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      await buildingMutation.mutateAsync({
-        name: formData.name,
-        address: formData.address,
-      });
-      
-      setFormData({ name: '', address: '' });
-      setIsDialogOpen(false);
-      
-      toast({
-        title: "Edifício cadastrado",
-        description: "Edifício adicionado com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível cadastrar o edifício.",
-        variant: "destructive",
-      });
-    }
+    const newBuilding: Building = {
+      id: `building-${Date.now()}`,
+      name: formData.name,
+      address: formData.address,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedBuildings = [...buildings, newBuilding];
+    setBuildings(updatedBuildings);
+    saveBuildings(updatedBuildings);
+    
+    setFormData({ name: '', address: '' });
+    setIsDialogOpen(false);
+    
+    toast({
+      title: "Edifício cadastrado",
+      description: "Edifício adicionado com sucesso!",
+    });
   };
 
   const handleEdit = (building: Building) => {
@@ -50,53 +50,28 @@ const BuildingManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!editingBuilding) return;
 
-    try {
-      await buildingMutation.mutateAsync({
-        id: editingBuilding.id,
-        name: formData.name,
-        address: formData.address,
-      });
-      
-      setFormData({ name: '', address: '' });
-      setEditingBuilding(null);
-      setIsEditDialogOpen(false);
-      
-      toast({
-        title: "Edifício atualizado",
-        description: "Edifício editado com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o edifício.",
-        variant: "destructive",
-      });
-    }
-  };
+    const updatedBuildings = buildings.map(building =>
+      building.id === editingBuilding.id
+        ? { ...building, name: formData.name, address: formData.address }
+        : building
+    );
 
-  const handleDelete = async (building: Building) => {
-    try {
-      await buildingMutation.mutateAsync({
-        id: building.id,
-        delete: true,
-      });
-      
-      toast({
-        title: "Edifício removido",
-        description: "Edifício removido com sucesso!",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover o edifício.",
-        variant: "destructive",
-      });
-    }
+    setBuildings(updatedBuildings);
+    saveBuildings(updatedBuildings);
+    
+    setFormData({ name: '', address: '' });
+    setEditingBuilding(null);
+    setIsEditDialogOpen(false);
+    
+    toast({
+      title: "Edifício atualizado",
+      description: "Edifício editado com sucesso!",
+    });
   };
 
   return (
@@ -181,13 +156,8 @@ const BuildingManagement = () => {
         </Dialog>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8">
-          <p>Carregando edifícios...</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {buildings.map((building) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {buildings.map((building) => (
           <Card key={building.id} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -199,26 +169,14 @@ const BuildingManagement = () => {
                     <CardTitle className="text-lg">{building.name}</CardTitle>
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(building)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(building)}
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit(building)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -226,12 +184,13 @@ const BuildingManagement = () => {
                 <MapPin className="w-4 h-4" />
                 <span className="text-sm">{building.address}</span>
               </div>
-              {/* Remover data de criação por enquanto */}
+              <p className="text-xs text-gray-500 mt-2">
+                Criado em {new Date(building.createdAt).toLocaleDateString('pt-BR')}
+              </p>
             </CardContent>
           </Card>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
 
       {buildings.length === 0 && (
         <Card className="text-center py-12">
