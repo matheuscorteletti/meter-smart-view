@@ -12,7 +12,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: meter-frontend
     ports:
-      - "3000:3000"
+      - "3002:3002"
     volumes:
       - .:/app
       - /app/node_modules
