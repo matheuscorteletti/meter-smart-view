@@ -1,23 +1,15 @@
-
-# Docker Compose para ambiente de desenvolvimento
-# Conectando com banco de dados externo
-
+# Docker Compose - Produção
 version: '3.8'
 
 services:
-  # Frontend React
   frontend:
-    build: 
+    build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: meter-frontend
     ports:
-      - "8087:8087"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+      - "8087:80"
+    restart: unless-stopped
     networks:
       - meter-network
 
