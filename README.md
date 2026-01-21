@@ -41,8 +41,11 @@ docker-compose up -d
 
 ## 🔐 Credenciais de Acesso
 
-- **Admin**: admin@demo.com / admin123
-- **Usuário**: user@demo.com / user123
+| Perfil | Email | Senha |
+|--------|-------|-------|
+| Administrador | admin@demo.com | admin123 |
+| Usuário | user@demo.com | user123 |
+| Visualizador | viewer@demo.com | viewer123 |
 
 ## 📁 Estrutura do Projeto
 
