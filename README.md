@@ -33,10 +33,23 @@ npm run dev
 ### Produção com Docker
 
 ```bash
-# Build e iniciar container
+# Primeiro build e iniciar
 docker-compose up -d
 
 # Acessar em http://localhost:8087
+```
+
+### Atualização / Novo Build
+
+```bash
+# Parar containers
+docker-compose down
+
+# Rebuild sem cache (usar após mudanças no código)
+docker-compose build --no-cache
+
+# Iniciar novamente
+docker-compose up -d
 ```
 
 ## 🔐 Credenciais de Acesso
